@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aladdin Investing - Stock Analysis</title>
+  <meta
+    name="description"
+    content="Comprehensive fundamental and technical analysis tools for informed investment decisions."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand-mark">🧞</div>
+        <div class="brand-copy">
+          <span class="brand-title">Aladdin Investing</span>
+          <span class="brand-subtitle">Smart Investment Platform</span>
+        </div>
+      </div>
+
+      <nav class="primary-nav" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Stock Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html" class="is-active">Analysis</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="ghost-button" type="button">Search</button>
+        <button class="primary-button" type="button">Get Started</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-section">
+        <div class="hero-copy">
+          <p class="eyebrow">Stock Analysis</p>
+          <h1>Comprehensive Fundamental & Technical Analysis</h1>
+          <p class="hero-text">
+            Deep dive into stock fundamentals, technical indicators, peer comparisons, and historical performance. 
+            Make informed investment decisions with data-driven insights.
+          </p>
+        </div>
+      </section>
+
+      <!-- Stock Search -->
+      <section class="market-switcher">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Search Stock</p>
+            <h2>Select a Stock to Analyze</h2>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input type="text" placeholder="Search by symbol or company name (e.g., HDFCBANK, Reliance)" class="search-input">
+          <button class="primary-button">Search</button>
+        </div>
+      </section>
+
+      <!-- Analysis Content -->
+      <section class="content-grid">
+        <div class="main-column">
+          <!-- Stock Overview -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Stock Overview</p>
+                <h3>HDFC Bank Ltd (HDFCBANK)</h3>
+              </div>
+              <span class="status-pill positive">NSE</span>
+            </div>
+
+            <div class="stock-overview">
+              <div class="price-section">
+                <div class="current-price">
+                  <span class="price-label">Current Price</span>
+                  <span class="price-value">₹1,650.25</span>
+                  <span class="price-change metric-positive">+20.50 (+1.26%)</span>
+                </div>
+                <div class="price-meta">
+                  <span>Open: ₹1,635.00</span>
+                  <span>High: ₹1,658.75</span>
+                  <span>Low: ₹1,630.20</span>
+                  <span>Prev Close: ₹1,629.75</span>
+                </div>
+              </div>
+
+              <div class="key-stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Market Cap</span>
+                  <span class="stat-value">₹9.2L Cr</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">P/E Ratio</span>
+                  <span class="stat-value">18.5</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">P/B Ratio</span>
+                  <span class="stat-value">2.8</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">Div Yield</span>
+                  <span class="stat-value">1.2%</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">ROE</span>
+                  <span class="stat-value metric-positive">16.2%</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">Debt/Equity</span>
+                  <span class="stat-value">0.45</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Fundamental Analysis -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Fundamental Analysis</p>
+                <h3>Financial Performance</h3>
+              </div>
+              <div class="tab-row">
+                <button class="is-active">Quarterly</button>
+                <button>Annual</button>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="economy-table">
+                <thead>
+                  <tr>
+                    <th>Quarter</th>
+                    <th>Revenue (₹ Cr)</th>
+                    <th>Net Profit (₹ Cr)</th>
+                    <th>EPS (₹)</th>
+                    <th>OPM %</th>
+                    <th>YoY Growth %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Q2 FY24</strong></td>
+                    <td>28,450</td>
+                    <td>16,820</td>
+                    <td>30.25</td>
+                    <td>59.1%</td>
+                    <td class="metric-positive">+18.5%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Q1 FY24</strong></td>
+                    <td>26,920</td>
+                    <td>15,980</td>
+                    <td>28.75</td>
+                    <td>59.4%</td>
+                    <td class="metric-positive">+16.2%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Q4 FY23</strong></td>
+                    <td>25,680</td>
+                    <td>14,950</td>
+                    <td>26.90</td>
+                    <td>58.2%</td>
+                    <td class="metric-positive">+15.8%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Q3 FY23</strong></td>
+                    <td>24,120</td>
+                    <td>14,200</td>
+                    <td>25.55</td>
+                    <td>58.9%</td>
+                    <td class="metric-positive">+14.2%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Technical Analysis -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Technical Analysis</p>
+                <h3>Technical Indicators</h3>
+              </div>
+            </div>
+
+            <div class="technical-grid">
+              <div class="indicator-card">
+                <h4>Moving Averages</h4>
+                <div class="indicator-list">
+                  <div class="indicator-item">
+                    <span>20 SMA</span>
+                    <span>₹1,625.50</span>
+                    <span class="metric-positive">Bullish</span>
+                  </div>
+                  <div class="indicator-item">
+                    <span>50 SMA</span>
+                    <span>₹1,598.20</span>
+                    <span class="metric-positive">Bullish</span>
+                  </div>
+                  <div class="indicator-item">
+                    <span>200 SMA</span>
+                    <span>₹1,520.80</span>
+                    <span class="metric-positive">Bullish</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="indicator-card">
+                <h4>Momentum Indicators</h4>
+                <div class="indicator-list">
+                  <div class="indicator-item">
+                    <span>RSI (14)</span>
+                    <span>62.5</span>
+                    <span class="metric-neutral">Neutral</span>
+                  </div>
+                  <div class="indicator-item">
+                    <span>MACD</span>
+                    <span>+12.5</span>
+                    <span class="metric-positive">Bullish</span>
+                  </div>
+                  <div class="indicator-item">
+                    <span>Stochastic</span>
+                    <span>68.2</span>
+                    <span class="metric-neutral">Neutral</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="indicator-card">
+                <h4>Support & Resistance</h4>
+                <div class="indicator-list">
+                  <div class="indicator-item">
+                    <span>Resistance 1</span>
+                    <span>₹1,680</span>
+                    <span class="metric-negative">+1.8%</span>
+                  </div>
+                  <div class="indicator-item">
+                    <span>Current Price</span>
+                    <span>₹1,650</span>
+                    <span>—</span>
+                  </div>
+                  <div class="indicator-item">
+                    <span>Support 1</span>
+                    <span>₹1,620</span>
+                    <span class="metric-positive">-1.8%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="indicator-card">
+                <h4>52-Week Range</h4>
+                <div class="range-bar">
+                  <span class="range-label">₹1,280</span>
+                  <div class="range-track">
+                    <div class="range-marker" style="left: 75%;"></div>
+                  </div>
+                  <span class="range-label">₹1,720</span>
+                </div>
+                <p class="range-info">Current: ₹1,650 (84% of 52W range)</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Peer Comparison -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Peer Comparison</p>
+                <h3>Private Banks Sector</h3>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="economy-table">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Price</th>
+                    <th>Mkt Cap</th>
+                    <th>P/E</th>
+                    <th>P/B</th>
+                    <th>ROE %</th>
+                    <th>Div Yield %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="highlight-row">
+                    <td><strong>HDFC Bank</strong></td>
+                    <td>₹1,650</td>
+                    <td>₹9.2L Cr</td>
+                    <td>18.5</td>
+                    <td>2.8</td>
+                    <td class="metric-positive">16.2%</td>
+                    <td>1.2%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>ICICI Bank</strong></td>
+                    <td>₹950</td>
+                    <td>₹6.7L Cr</td>
+                    <td>16.2</td>
+                    <td>2.3</td>
+                    <td class="metric-positive">15.8%</td>
+                    <td>1.0%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Axis Bank</strong></td>
+                    <td>₹1,020</td>
+                    <td>₹3.1L Cr</td>
+                    <td>14.8</td>
+                    <td>1.9</td>
+                    <td class="metric-positive">14.5%</td>
+                    <td>0.8%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Kotak Bank</strong></td>
+                    <td>₹1,780</td>
+                    <td>₹3.5L Cr</td>
+                    <td>19.2</td>
+                    <td>3.1</td>
+                    <td class="metric-positive">13.8%</td>
+                    <td>0.6%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="side-column">
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Analyst Rating</p>
+                <h3>Recommendation</h3>
+              </div>
+            </div>
+            <div class="rating-section">
+              <div class="rating-score">
+                <span class="rating-value metric-positive">BUY</span>
+                <span class="rating-confidence">Strong Buy (85% confidence)</span>
+              </div>
+              <div class="rating-breakdown">
+                <div class="rating-item">
+                  <span>Strong Buy</span>
+                  <div class="rating-bar">
+                    <div class="rating-fill" style="width: 60%; background: #22c55e;"></div>
+                  </div>
+                  <span>12</span>
+                </div>
+                <div class="rating-item">
+                  <span>Buy</span>
+                  <div class="rating-bar">
+                    <div class="rating-fill" style="width: 30%; background: #86efac;"></div>
+                  </div>
+                  <span>6</span>
+                </div>
+                <div class="rating-item">
+                  <span>Hold</span>
+                  <div class="rating-bar">
+                    <div class="rating-fill" style="width: 10%; background: #fbbf24;"></div>
+                  </div>
+                  <span>2</span>
+                </div>
+                <div class="rating-item">
+                  <span>Sell</span>
+                  <div class="rating-bar">
+                    <div class="rating-fill" style="width: 0%; background: #ef4444;"></div>
+                  </div>
+                  <span>0</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Price Targets</p>
+                <h3>Analyst Estimates</h3>
+              </div>
+            </div>
+            <div class="stat-list">
+              <div class="stat-item">
+                <span class="label">High Target</span>
+                <span class="value metric-positive">₹1,850</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Average Target</span>
+                <span class="value">₹1,720</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Low Target</span>
+                <span class="value">₹1,580</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Upside Potential</span>
+                <span class="value metric-positive">+4.2%</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Corporate Actions</p>
+                <h3>Upcoming Events</h3>
+              </div>
+            </div>
+            <div class="events-list">
+              <div class="event-item">
+                <span class="event-date">Dec 20, 2024</span>
+                <span class="event-title">Dividend</span>
+                <span class="event-detail">₹19.50 per share</span>
+              </div>
+              <div class="event-item">
+                <span class="event-date">Jan 15, 2025</span>
+                <span class="event-title">Q3 Results</span>
+                <span class="event-detail">Earnings announcement</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand-mark">🧞</div>
+        <div>
+          <strong>Aladdin Investing</strong>
+          <p>Comprehensive stock analysis with fundamental and technical insights.</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="analysis-script.js"></script>
+</body>
+</html>

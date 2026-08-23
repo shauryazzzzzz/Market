@@ -1,0 +1,59 @@
+﻿# Node
+node_modules/
+npm-debug.log*
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+public-react/
+dist/
+build/
+.vite/
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+nf-out.txt
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Bob AI agent
+.bob/
+**/.bob/
+
+# Temp / test files
+test_*.mjs
+analyze-sheet.js
+
+# Large JSON data caches (keep CSVs)
+data/stocks-*.json
+data/top-gainers.json
+data/top-losers.json
+data/hdfcbank-quote.json
+data/economy-data.json
+data/market-indices.json
+data/nse-stocks.json
+data/ipo-calendar.json
+data/dummy-ai.json
+
+# Keep these tracked
+!data/screener.csv
+!data/google-sheet-main.csv
+
+# Sub-package node_modules
+financial-monitor/node_modules/
+financial-monitor/.bob/
+NewsFeed-Google-AI-/node_modules/
+NewsFeed-Google-AI-/.git/

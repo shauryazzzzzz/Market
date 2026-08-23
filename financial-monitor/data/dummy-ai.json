@@ -1,0 +1,15 @@
+{
+  "default": "[AI Offline] Service temporarily unavailable. Showing cached/demo data.",
+  "responses": {
+    "classify":   "General",
+    "summarize":  "Summary unavailable — AI service is offline. Please check your WATSONX_API_KEY and WATSONX_PROJECT_ID in env.example.",
+    "commodity":  "Commodity analysis unavailable in offline mode.",
+    "news":       "News summarization unavailable in offline mode.",
+    "financial":  "Financial analysis unavailable in offline mode.",
+    "travel":     "Travel recommendation unavailable in offline mode.",
+    "stocks":     "Stock analysis unavailable in offline mode.",
+    "sentiment":  "neutral",
+    "category":   "Uncategorized",
+    "json":       "{}"
+  }
+}

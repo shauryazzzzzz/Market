@@ -1,0 +1,33 @@
+{
+  "name": "financial-monitor",
+  "version": "1.0.0",
+  "description": "A comprehensive financial dashboard for monitoring NSE 500 stocks with quarterly results, trading statistics, and fundamental analysis ratios.",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/server.js",
+    "client": "cd client && npm start",
+    "install-all": "npm install && cd client && npm install",
+    "build": "cd client && npm run build",
+    "db:init": "node server/database/init.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["financial", "stocks", "NSE", "dashboard", "monitor"],
+  "author": "Saurabh Solanki",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0",
+    "sqlite3": "^5.1.7",
+    "yahoo-finance2": "^4.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.0"
+  }
+}

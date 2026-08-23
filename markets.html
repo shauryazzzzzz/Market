@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aladdin Investing - Global Markets</title>
+  <meta
+    name="description"
+    content="Explore global stock markets across USA, India, China, Japan, Brazil, Taiwan, Korea, Germany with 4-level navigation."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand-mark">🧞</div>
+        <div class="brand-copy">
+          <span class="brand-title">Aladdin Investing</span>
+          <span class="brand-subtitle">Smart Investment Platform</span>
+        </div>
+      </div>
+
+      <nav class="primary-nav" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="markets.html" class="is-active">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Stock Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="ghost-button" type="button">Search</button>
+        <button class="primary-button" type="button">Get Started</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Level 1: Geography Selection -->
+      <section class="geography-bar">
+        <div class="geography-container">
+          <h2 class="section-kicker">Level 1: Select Geography</h2>
+          <div class="geography-tabs" id="geography-tabs">
+            <button class="geography-tab is-active" data-country="IN">
+              <span class="flag-icon">🇮🇳</span>
+              <span>India</span>
+            </button>
+            <button class="geography-tab" data-country="US">
+              <span class="flag-icon">🇺🇸</span>
+              <span>USA</span>
+            </button>
+            <button class="geography-tab" data-country="CN">
+              <span class="flag-icon">🇨🇳</span>
+              <span>China</span>
+            </button>
+            <button class="geography-tab" data-country="JP">
+              <span class="flag-icon">🇯🇵</span>
+              <span>Japan</span>
+            </button>
+            <button class="geography-tab" data-country="BR">
+              <span class="flag-icon">🇧🇷</span>
+              <span>Brazil</span>
+            </button>
+            <button class="geography-tab" data-country="TW">
+              <span class="flag-icon">🇹🇼</span>
+              <span>Taiwan</span>
+            </button>
+            <button class="geography-tab" data-country="KR">
+              <span class="flag-icon">🇰🇷</span>
+              <span>Korea</span>
+            </button>
+            <button class="geography-tab" data-country="DE">
+              <span class="flag-icon">🇩🇪</span>
+              <span>Germany</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Level 2: Asset Class Selection -->
+      <section class="asset-class-section">
+        <h2 class="section-kicker">Level 2: Select Asset Class</h2>
+        <div class="asset-class-grid">
+          <button class="asset-card is-active" data-asset="EQUITY">
+            <span class="asset-icon">📈</span>
+            <h3>Equity</h3>
+            <p>Stocks & Shares</p>
+          </button>
+          <button class="asset-card" data-asset="DEBT">
+            <span class="asset-icon">💰</span>
+            <h3>Debt</h3>
+            <p>Corporate Bonds</p>
+          </button>
+          <button class="asset-card" data-asset="GOLD">
+            <span class="asset-icon">🥇</span>
+            <h3>Gold</h3>
+            <p>Gold ETFs & SGBs</p>
+          </button>
+          <button class="asset-card" data-asset="GOVT_BOND">
+            <span class="asset-icon">🏛️</span>
+            <h3>Govt Bonds</h3>
+            <p>Treasury & G-Secs</p>
+          </button>
+          <button class="asset-card" data-asset="REAL_ESTATE">
+            <span class="asset-icon">🏠</span>
+            <h3>Real Estate</h3>
+            <p>REITs</p>
+          </button>
+          <button class="asset-card" data-asset="INVIT">
+            <span class="asset-icon">🏗️</span>
+            <h3>InvIT</h3>
+            <p>Infrastructure Trusts</p>
+          </button>
+          <button class="asset-card" data-asset="MF">
+            <span class="asset-icon">📊</span>
+            <h3>Mutual Funds</h3>
+            <p>Equity, Debt, Hybrid</p>
+          </button>
+          <button class="asset-card" data-asset="ETF">
+            <span class="asset-icon">📉</span>
+            <h3>ETF</h3>
+            <p>Exchange Traded Funds</p>
+          </button>
+        </div>
+      </section>
+
+      <!-- Level 3: Sector & Industry Selection -->
+      <section class="sector-section">
+        <h2 class="section-kicker">Level 3: Select Sector & Industry</h2>
+        <div class="sector-industry-container">
+          <div class="sector-list">
+            <h3>Sectors</h3>
+            <button class="sector-btn is-active" data-sector="FINANCIAL">
+              🏦 Financial Institutions
+            </button>
+            <button class="sector-btn" data-sector="TECHNOLOGY">
+              💻 Technology
+            </button>
+            <button class="sector-btn" data-sector="HEALTHCARE">
+              🏥 Healthcare
+            </button>
+            <button class="sector-btn" data-sector="CONSUMER">
+              🛒 Consumer Goods
+            </button>
+            <button class="sector-btn" data-sector="ENERGY">
+              ⚡ Energy
+            </button>
+            <button class="sector-btn" data-sector="INDUSTRIAL">
+              🏭 Industrials
+            </button>
+          </div>
+          <div class="industry-list">
+            <h3>Industries</h3>
+            <button class="industry-btn is-active" data-industry="PRIVATE_BANKS">
+              Private Banks
+            </button>
+            <button class="industry-btn" data-industry="PUBLIC_BANKS">
+              Public Banks
+            </button>
+            <button class="industry-btn" data-industry="NBFC">
+              NBFCs
+            </button>
+            <button class="industry-btn" data-industry="INSURANCE">
+              Insurance
+            </button>
+            <button class="industry-btn" data-industry="ASSET_MGMT">
+              Asset Management
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Level 4: Market Cap Filter -->
+      <section class="marketcap-section">
+        <h2 class="section-kicker">Level 4: Filter by Market Cap</h2>
+        <div class="marketcap-filters">
+          <button class="marketcap-btn is-active" data-cap="LARGE">
+            🔵 Large Cap
+            <span class="cap-detail">> ₹20,000 Cr</span>
+          </button>
+          <button class="marketcap-btn" data-cap="MID">
+            🟢 Mid Cap
+            <span class="cap-detail">₹5,000 - ₹20,000 Cr</span>
+          </button>
+          <button class="marketcap-btn" data-cap="SMALL">
+            🟡 Small Cap
+            <span class="cap-detail">₹500 - ₹5,000 Cr</span>
+          </button>
+          <button class="marketcap-btn" data-cap="MICRO">
+            🔴 Micro Cap
+            <span class="cap-detail">< ₹500 Cr</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Stock Results -->
+      <section class="results-section">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Results</p>
+            <h2 id="results-title">India → Equity → Financial Institutions → Private Banks → Large Cap</h2>
+          </div>
+          <div class="results-meta">
+            <span id="results-count">12 stocks found</span>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="economy-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Company</th>
+                <th>Price</th>
+                <th>Change %</th>
+                <th>Market Cap</th>
+                <th>P/E</th>
+                <th>P/B</th>
+                <th>ROE %</th>
+              </tr>
+            </thead>
+            <tbody id="stocks-table-body">
+              <tr>
+                <td><strong>HDFCBANK</strong></td>
+                <td>HDFC Bank Ltd</td>
+                <td>₹1,650.25</td>
+                <td class="metric-positive">+1.2%</td>
+                <td>₹9.2L Cr</td>
+                <td>18.5</td>
+                <td>2.8</td>
+                <td class="metric-positive">16.2%</td>
+              </tr>
+              <tr>
+                <td><strong>ICICIBANK</strong></td>
+                <td>ICICI Bank Ltd</td>
+                <td>₹950.50</td>
+                <td class="metric-positive">+0.8%</td>
+                <td>₹6.7L Cr</td>
+                <td>16.2</td>
+                <td>2.3</td>
+                <td class="metric-positive">15.8%</td>
+              </tr>
+              <tr>
+                <td><strong>AXISBANK</strong></td>
+                <td>Axis Bank Ltd</td>
+                <td>₹1,020.75</td>
+                <td class="metric-negative">-0.3%</td>
+                <td>₹3.1L Cr</td>
+                <td>14.8</td>
+                <td>1.9</td>
+                <td class="metric-positive">14.5%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    <script src="markets-script-v2.js"></script>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand-mark">🧞</div>
+        <div>
+          <strong>Aladdin Investing</strong>
+          <p>Comprehensive global market data with 4-level navigation.</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>

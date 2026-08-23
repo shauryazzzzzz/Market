@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aladdin Investing - Stock Screener</title>
+  <meta
+    name="description"
+    content="Advanced stock screener with fundamental and technical filters to find the best investment opportunities."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand-mark">🧞</div>
+        <div class="brand-copy">
+          <span class="brand-title">Aladdin Investing</span>
+          <span class="brand-subtitle">Smart Investment Platform</span>
+        </div>
+      </div>
+
+      <nav class="primary-nav" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html" class="is-active">Stock Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="ghost-button" type="button">Search</button>
+        <button class="primary-button" type="button">Get Started</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-section">
+        <div class="hero-copy">
+          <p class="eyebrow">Stock Screener</p>
+          <h1>Find Your Next Investment</h1>
+          <p class="hero-text">
+            Use advanced filters to screen stocks based on fundamental ratios, technical indicators, 
+            market cap, sector, and more. Save your custom screens for quick access.
+          </p>
+        </div>
+      </section>
+
+      <!-- Quick Filters -->
+      <section class="market-switcher">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Quick Screens</p>
+            <h2>Popular Filters</h2>
+          </div>
+        </div>
+        <div class="chip-row">
+          <button class="is-active">All Stocks</button>
+          <button>High Dividend Yield</button>
+          <button>Low P/E Ratio</button>
+          <button>High ROE</button>
+          <button>52-Week High</button>
+          <button>Undervalued</button>
+          <button>Momentum Stocks</button>
+        </div>
+      </section>
+
+      <!-- Advanced Filters -->
+      <section class="content-grid">
+        <div class="main-column">
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Advanced Filters</p>
+                <h3>Customize Your Screen</h3>
+              </div>
+              <button class="ghost-button small">Reset All</button>
+            </div>
+
+            <div class="filter-sections">
+              <!-- Geography & Asset Class -->
+              <div class="filter-section">
+                <h4>Geography & Asset Class</h4>
+                <div class="filter-grid">
+                  <div class="filter-item">
+                    <label>Country</label>
+                    <select class="filter-select">
+                      <option value="IN">India</option>
+                      <option value="US">USA</option>
+                      <option value="CN">China</option>
+                      <option value="JP">Japan</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label>Asset Class</label>
+                    <select class="filter-select">
+                      <option value="EQUITY">Equity</option>
+                      <option value="DEBT">Debt</option>
+                      <option value="ETF">ETF</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sector & Industry -->
+              <div class="filter-section">
+                <h4>Sector & Industry</h4>
+                <div class="filter-grid">
+                  <div class="filter-item">
+                    <label>Sector</label>
+                    <select class="filter-select">
+                      <option value="">All Sectors</option>
+                      <option value="FINANCIAL">Financial Institutions</option>
+                      <option value="TECHNOLOGY">Technology</option>
+                      <option value="HEALTHCARE">Healthcare</option>
+                      <option value="CONSUMER">Consumer Goods</option>
+                      <option value="ENERGY">Energy</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label>Industry</label>
+                    <select class="filter-select">
+                      <option value="">All Industries</option>
+                      <option value="PRIVATE_BANKS">Private Banks</option>
+                      <option value="PUBLIC_BANKS">Public Banks</option>
+                      <option value="NBFC">NBFCs</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Market Cap -->
+              <div class="filter-section">
+                <h4>Market Capitalization</h4>
+                <div class="filter-grid">
+                  <div class="filter-item">
+                    <label>Market Cap Category</label>
+                    <select class="filter-select">
+                      <option value="">All</option>
+                      <option value="LARGE">Large Cap (> ₹20,000 Cr)</option>
+                      <option value="MID">Mid Cap (₹5,000 - ₹20,000 Cr)</option>
+                      <option value="SMALL">Small Cap (₹500 - ₹5,000 Cr)</option>
+                      <option value="MICRO">Micro Cap (< ₹500 Cr)</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label>Min Market Cap (₹ Cr)</label>
+                    <input type="number" class="filter-input" placeholder="e.g., 1000">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fundamental Ratios -->
+              <div class="filter-section">
+                <h4>Fundamental Ratios</h4>
+                <div class="filter-grid">
+                  <div class="filter-item">
+                    <label>P/E Ratio</label>
+                    <div class="range-inputs">
+                      <input type="number" class="filter-input" placeholder="Min">
+                      <span>to</span>
+                      <input type="number" class="filter-input" placeholder="Max">
+                    </div>
+                  </div>
+                  <div class="filter-item">
+                    <label>P/B Ratio</label>
+                    <div class="range-inputs">
+                      <input type="number" class="filter-input" placeholder="Min">
+                      <span>to</span>
+                      <input type="number" class="filter-input" placeholder="Max">
+                    </div>
+                  </div>
+                  <div class="filter-item">
+                    <label>ROE (%)</label>
+                    <div class="range-inputs">
+                      <input type="number" class="filter-input" placeholder="Min">
+                      <span>to</span>
+                      <input type="number" class="filter-input" placeholder="Max">
+                    </div>
+                  </div>
+                  <div class="filter-item">
+                    <label>Dividend Yield (%)</label>
+                    <div class="range-inputs">
+                      <input type="number" class="filter-input" placeholder="Min">
+                      <span>to</span>
+                      <input type="number" class="filter-input" placeholder="Max">
+                    </div>
+                  </div>
+                  <div class="filter-item">
+                    <label>Debt to Equity</label>
+                    <div class="range-inputs">
+                      <input type="number" class="filter-input" placeholder="Min">
+                      <span>to</span>
+                      <input type="number" class="filter-input" placeholder="Max">
+                    </div>
+                  </div>
+                  <div class="filter-item">
+                    <label>ROCE (%)</label>
+                    <div class="range-inputs">
+                      <input type="number" class="filter-input" placeholder="Min">
+                      <span>to</span>
+                      <input type="number" class="filter-input" placeholder="Max">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Technical Indicators -->
+              <div class="filter-section">
+                <h4>Technical Indicators</h4>
+                <div class="filter-grid">
+                  <div class="filter-item">
+                    <label>RSI (14)</label>
+                    <div class="range-inputs">
+                      <input type="number" class="filter-input" placeholder="Min">
+                      <span>to</span>
+                      <input type="number" class="filter-input" placeholder="Max">
+                    </div>
+                  </div>
+                  <div class="filter-item">
+                    <label>Price vs 200 SMA</label>
+                    <select class="filter-select">
+                      <option value="">Any</option>
+                      <option value="ABOVE">Above 200 SMA</option>
+                      <option value="BELOW">Below 200 SMA</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label>52-Week Performance</label>
+                    <select class="filter-select">
+                      <option value="">Any</option>
+                      <option value="HIGH">Near 52W High</option>
+                      <option value="LOW">Near 52W Low</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="filter-actions">
+                <button class="primary-button">Apply Filters</button>
+                <button class="secondary-button">Save Screen</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Results -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Results</p>
+                <h3>Matching Stocks</h3>
+              </div>
+              <span class="status-pill">24 stocks found</span>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="economy-table">
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Company</th>
+                    <th>Sector</th>
+                    <th>Price</th>
+                    <th>Change %</th>
+                    <th>Mkt Cap</th>
+                    <th>P/E</th>
+                    <th>P/B</th>
+                    <th>ROE %</th>
+                    <th>Div Yield %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>HDFCBANK</strong></td>
+                    <td>HDFC Bank Ltd</td>
+                    <td>Private Banks</td>
+                    <td>₹1,650.25</td>
+                    <td class="metric-positive">+1.2%</td>
+                    <td>₹9.2L Cr</td>
+                    <td>18.5</td>
+                    <td>2.8</td>
+                    <td class="metric-positive">16.2%</td>
+                    <td>1.2%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>TCS</strong></td>
+                    <td>Tata Consultancy Services</td>
+                    <td>IT Services</td>
+                    <td>₹3,520.80</td>
+                    <td class="metric-positive">+0.5%</td>
+                    <td>₹12.8L Cr</td>
+                    <td>28.3</td>
+                    <td>12.5</td>
+                    <td class="metric-positive">42.8%</td>
+                    <td>2.8%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>RELIANCE</strong></td>
+                    <td>Reliance Industries</td>
+                    <td>Refineries</td>
+                    <td>₹2,450.60</td>
+                    <td class="metric-negative">-0.3%</td>
+                    <td>₹16.5L Cr</td>
+                    <td>22.1</td>
+                    <td>1.9</td>
+                    <td class="metric-positive">9.5%</td>
+                    <td>0.5%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="side-column">
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Saved Screens</p>
+                <h3>My Screens</h3>
+              </div>
+            </div>
+            <div class="screener-list">
+              <button class="screener-item">High Dividend Stocks</button>
+              <button class="screener-item">Value Picks</button>
+              <button class="screener-item">Growth Stocks</button>
+              <button class="screener-item">Momentum Leaders</button>
+              <button class="screener-item">Undervalued Gems</button>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Quick Stats</p>
+                <h3>Market Summary</h3>
+              </div>
+            </div>
+            <div class="stat-list">
+              <div class="stat-item">
+                <span class="label">Stocks Screened</span>
+                <span class="value">2,458</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Avg P/E Ratio</span>
+                <span class="value">24.5</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Avg ROE</span>
+                <span class="value metric-positive">15.8%</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Avg Div Yield</span>
+                <span class="value">1.4%</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+    <script src="screener-script.js"></script>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand-mark">🧞</div>
+        <div>
+          <strong>Aladdin Investing</strong>
+          <p>Advanced stock screening with fundamental and technical filters.</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>

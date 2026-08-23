@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aladdin Investing - Global Markets & Investment Platform</title>
+  <meta
+    name="description"
+    content="Comprehensive investment platform with global market data, IPO calendar, stock screener, and investment strategies across multiple geographies and asset classes."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand-mark">🧞</div>
+        <div class="brand-copy">
+          <span class="brand-title">Aladdin Investing</span>
+          <span class="brand-subtitle">Smart Investment Platform</span>
+        </div>
+      </div>
+
+      <nav class="primary-nav" aria-label="Primary">
+        <a href="index.html" class="is-active">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Stock Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="ghost-button" type="button">Search</button>
+        <button class="ghost-button" type="button">Products</button>
+        <button class="primary-button" type="button">Get started</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="ticker-strip" aria-label="Market snapshot">
+        <div class="ticker-track" id="ticker-track"></div>
+      </section>
+      <section class="hero-section" id="overview">
+        <div class="hero-copy">
+          <p class="eyebrow">Welcome to Aladdin Investing</p>
+          <h1>Your Gateway to Global Investment Opportunities</h1>
+          <p class="hero-text">
+            Navigate through global markets with our intelligent 4-level hierarchy: Geography → Asset Classes → Sectors → Market Cap.
+            Access real-time data, IPO calendars, fundamental analysis, and curated investment strategies powered by advanced algorithms.
+          </p>
+
+          <div class="hero-actions">
+            <a href="markets.html" class="primary-button">Explore Markets</a>
+            <a href="ipo-calendar.html" class="secondary-button">View IPO Calendar</a>
+          </div>
+
+          <div class="hero-stats" id="hero-stats"></div>
+        </div>
+
+        <aside class="hero-panel">
+          <div class="panel-card spotlight-card">
+            <div class="panel-card-header">
+              <span class="panel-label">Economic pulse</span>
+              <span class="status-pill positive">Live snapshot</span>
+            </div>
+            <div class="spotlight-grid" id="spotlight-grid"></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="market-switcher">
+        <div class="market-overview-grid">
+          <article class="panel-card overview-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Overview</p>
+                <h3>Macro dashboard summary</h3>
+              </div>
+              <span class="status-pill positive" id="overview-status-pill">Live cache</span>
+            </div>
+            <div class="overview-grid" id="overview-grid"></div>
+          </article>
+
+          <article class="panel-card heatmap-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Heatmap</p>
+                <h3>Regional momentum</h3>
+              </div>
+            </div>
+            <div class="heatmap-grid" id="heatmap-grid"></div>
+          </article>
+        </div>
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Market categories</p>
+            <h2>Browse the economy dashboard</h2>
+          </div>
+          <p class="section-description">
+            Switch between macro themes and inspect country-level indicators with a desktop-first layout.
+          </p>
+        </div>
+
+        <div class="tab-row" id="macro-tabs" role="tablist" aria-label="Macro categories"></div>
+        <div class="chip-row" id="region-filters" aria-label="Region filters"></div>
+      </section>
+
+      <section class="content-grid" id="economy">
+        <div class="main-column">
+          <section class="panel-card data-panel">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Country overview</p>
+                <h3>Major economies</h3>
+              </div>
+              <button class="ghost-button small" type="button">Export</button>
+            </div>
+
+            <div class="table-toolbar">
+              <div class="toolbar-tabs" id="table-view-tabs"></div>
+              <div class="toolbar-meta">
+                <span id="data-updated-at">Waiting for cache</span>
+                <span class="dot-divider"></span>
+                <span id="data-source-status">Loading data</span>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="economy-table">
+                <thead>
+                  <tr>
+                    <th>Country</th>
+                    <th>GDP Growth</th>
+                    <th>Inflation</th>
+                    <th>Interest Rate</th>
+                    <th>Unemployment</th>
+                    <th>Trend</th>
+                  </tr>
+                </thead>
+                <tbody id="economy-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel-card cards-panel">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Indicator monitor</p>
+                <h3>Key macro indicators</h3>
+              </div>
+              <a href="#calendar" class="text-link">Open calendar</a>
+            </div>
+            <div class="indicator-grid" id="indicator-grid"></div>
+          </section>
+
+          <section class="panel-card chart-panel">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Trend board</p>
+                <h3>Macro indicator trend view</h3>
+              </div>
+              <span class="news-meta">Derived from cached values</span>
+            </div>
+            <div class="trend-chart" id="trend-chart"></div>
+          </section>
+
+          <section class="panel-card calendar-panel" id="calendar">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Upcoming events</p>
+                <h3>Economic calendar highlights</h3>
+              </div>
+              <button class="ghost-button small" type="button">This week</button>
+            </div>
+            <div class="calendar-list" id="calendar-list"></div>
+          </section>
+        </div>
+
+        <aside class="side-column">
+          <section class="panel-card movers-panel">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Fast movers</p>
+                <h3>What traders watch now</h3>
+              </div>
+            </div>
+            <div class="movers-list" id="movers-list"></div>
+          </section>
+
+          <section class="panel-card sentiment-panel">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Sentiment</p>
+                <h3>Macro risk balance</h3>
+              </div>
+            </div>
+            <div class="sentiment-meter">
+              <div class="meter-track">
+                <div class="meter-fill"></div>
+              </div>
+              <div class="meter-labels">
+                <span>Risk-off</span>
+                <span>Balanced</span>
+                <span>Risk-on</span>
+              </div>
+            </div>
+            <ul class="sentiment-points">
+              <li>Inflation expectations easing in developed markets</li>
+              <li>Central banks remain data-dependent</li>
+              <li>Employment resilience supports consumer demand</li>
+            </ul>
+          </section>
+
+          <section class="panel-card screener-panel" id="screeners">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Screeners</p>
+                <h3>Quick scans</h3>
+              </div>
+            </div>
+            <div class="screener-list">
+              <button class="screener-item" type="button">Highest inflation</button>
+              <button class="screener-item" type="button">Lowest unemployment</button>
+              <button class="screener-item" type="button">Rate cut candidates</button>
+              <button class="screener-item" type="button">GDP acceleration</button>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="news-section" id="news">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Insights</p>
+            <h2>Latest economy stories</h2>
+          </div>
+          <a href="#ideas" class="text-link">View all ideas</a>
+        </div>
+        <div class="news-grid" id="news-grid"></div>
+      </section>
+
+      <section class="ideas-section" id="ideas">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Country focus</p>
+            <h2>Economy spotlight cards</h2>
+          </div>
+        </div>
+        <div class="country-spotlight-grid" id="country-spotlight-grid"></div>
+
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Analyst ideas</p>
+            <h2>Macro themes in focus</h2>
+          </div>
+        </div>
+        <div class="ideas-grid" id="ideas-grid"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand-mark">🧞</div>
+        <div>
+          <strong>Aladdin Investing</strong>
+          <p>Comprehensive global investment platform with multi-level market navigation and intelligent strategies.</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="index-script.js"></script>
+</body>
+</html>

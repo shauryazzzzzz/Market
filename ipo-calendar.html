@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aladdin Investing - IPO Calendar</title>
+  <meta
+    name="description"
+    content="Track upcoming, open, and recently listed IPOs across global markets with comprehensive details and subscription data."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand-mark">🧞</div>
+        <div class="brand-copy">
+          <span class="brand-title">Aladdin Investing</span>
+          <span class="brand-subtitle">Smart Investment Platform</span>
+        </div>
+      </div>
+
+      <nav class="primary-nav" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html" class="is-active">IPO Calendar</a>
+        <a href="screener.html">Stock Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="ghost-button" type="button">Search</button>
+        <button class="primary-button" type="button">Get Started</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-section">
+        <div class="hero-copy">
+          <p class="eyebrow">IPO Calendar</p>
+          <h1>Track Initial Public Offerings Globally</h1>
+          <p class="hero-text">
+            Stay updated with upcoming, open, and recently listed IPOs across multiple geographies and asset classes. 
+            Get detailed information on price bands, subscription data, and listing performance.
+          </p>
+        </div>
+      </section>
+
+      <!-- Geography Filter -->
+      <section class="geography-bar">
+        <div class="geography-container">
+          <h2 class="section-kicker">Select Geography</h2>
+          <div class="geography-tabs">
+            <button class="geography-tab is-active" data-country="IN">
+              <span class="flag-icon">🇮🇳</span>
+              <span>India</span>
+            </button>
+            <button class="geography-tab" data-country="US">
+              <span class="flag-icon">🇺🇸</span>
+              <span>USA</span>
+            </button>
+            <button class="geography-tab" data-country="CN">
+              <span class="flag-icon">🇨🇳</span>
+              <span>China</span>
+            </button>
+            <button class="geography-tab" data-country="JP">
+              <span class="flag-icon">🇯🇵</span>
+              <span>Japan</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- IPO Status Filters -->
+      <section class="market-switcher">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Filter by Status</p>
+            <h2>IPO Status</h2>
+          </div>
+        </div>
+        <div class="tab-row">
+          <button class="is-active">All IPOs</button>
+          <button>Upcoming</button>
+          <button>Open Now</button>
+          <button>Closed</button>
+          <button>Listed</button>
+        </div>
+      </section>
+
+      <!-- IPO Cards Grid -->
+      <section class="content-grid">
+        <div class="main-column">
+          <!-- Upcoming IPOs -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Upcoming IPOs</p>
+                <h3>Opening Soon</h3>
+              </div>
+              <span class="status-pill neutral">3 IPOs</span>
+            </div>
+            
+            <div class="ipo-list">
+              <article class="ipo-item">
+                <div class="ipo-header">
+                  <div>
+                    <h4>Tech Innovations Ltd</h4>
+                    <span class="ipo-type">Mainboard • Technology</span>
+                  </div>
+                  <span class="status-pill neutral">Upcoming</span>
+                </div>
+                <div class="ipo-details-grid">
+                  <div class="ipo-detail">
+                    <span class="label">Price Band</span>
+                    <span class="value">₹120 - ₹125</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Issue Size</span>
+                    <span class="value">₹500 Cr</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Open Date</span>
+                    <span class="value">Dec 20, 2024</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Close Date</span>
+                    <span class="value">Dec 24, 2024</span>
+                  </div>
+                </div>
+              </article>
+
+              <article class="ipo-item">
+                <div class="ipo-header">
+                  <div>
+                    <h4>Green Energy Solutions</h4>
+                    <span class="ipo-type">Mainboard • Energy</span>
+                  </div>
+                  <span class="status-pill neutral">Upcoming</span>
+                </div>
+                <div class="ipo-details-grid">
+                  <div class="ipo-detail">
+                    <span class="label">Price Band</span>
+                    <span class="value">₹200 - ₹210</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Issue Size</span>
+                    <span class="value">₹750 Cr</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Open Date</span>
+                    <span class="value">Dec 22, 2024</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Close Date</span>
+                    <span class="value">Dec 26, 2024</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- Open IPOs -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Open IPOs</p>
+                <h3>Currently Accepting Bids</h3>
+              </div>
+              <span class="status-pill positive">2 IPOs</span>
+            </div>
+            
+            <div class="ipo-list">
+              <article class="ipo-item">
+                <div class="ipo-header">
+                  <div>
+                    <h4>Healthcare Plus Ltd</h4>
+                    <span class="ipo-type">Mainboard • Healthcare</span>
+                  </div>
+                  <span class="status-pill positive">Open</span>
+                </div>
+                <div class="ipo-details-grid">
+                  <div class="ipo-detail">
+                    <span class="label">Price Band</span>
+                    <span class="value">₹85 - ₹90</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Issue Size</span>
+                    <span class="value">₹300 Cr</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Subscription</span>
+                    <span class="value metric-positive">8.5x</span>
+                  </div>
+                  <div class="ipo-detail">
+                    <span class="label">Days Left</span>
+                    <span class="value">2 days</span>
+                  </div>
+                </div>
+                <div class="subscription-breakdown">
+                  <div class="sub-item">
+                    <span>QIB:</span>
+                    <span class="metric-positive">12.3x</span>
+                  </div>
+                  <div class="sub-item">
+                    <span>NII:</span>
+                    <span class="metric-positive">6.8x</span>
+                  </div>
+                  <div class="sub-item">
+                    <span>Retail:</span>
+                    <span class="metric-positive">4.2x</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- Recently Listed -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Recently Listed</p>
+                <h3>Latest Listings</h3>
+              </div>
+              <span class="status-pill">5 IPOs</span>
+            </div>
+            
+            <div class="table-wrapper">
+              <table class="economy-table">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Issue Price</th>
+                    <th>Listing Price</th>
+                    <th>Listing Gain</th>
+                    <th>Current Price</th>
+                    <th>Listing Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Digital Services Ltd</strong></td>
+                    <td>₹150</td>
+                    <td>₹195</td>
+                    <td class="metric-positive">+30.0%</td>
+                    <td>₹210</td>
+                    <td>Dec 10, 2024</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pharma Innovations</strong></td>
+                    <td>₹220</td>
+                    <td>₹242</td>
+                    <td class="metric-positive">+10.0%</td>
+                    <td>₹235</td>
+                    <td>Dec 8, 2024</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Auto Components Co</strong></td>
+                    <td>₹180</td>
+                    <td>₹171</td>
+                    <td class="metric-negative">-5.0%</td>
+                    <td>₹175</td>
+                    <td>Dec 5, 2024</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="side-column">
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">IPO Statistics</p>
+                <h3>Market Overview</h3>
+              </div>
+            </div>
+            <div class="stat-list">
+              <div class="stat-item">
+                <span class="label">Total IPOs (2024)</span>
+                <span class="value">156</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Avg Listing Gain</span>
+                <span class="value metric-positive">+18.5%</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Total Funds Raised</span>
+                <span class="value">₹85,000 Cr</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Success Rate</span>
+                <span class="value">72%</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Top Performers</p>
+                <h3>Best Listing Gains</h3>
+              </div>
+            </div>
+            <div class="movers-list">
+              <article class="mover-item">
+                <div>
+                  <span class="panel-label">Tech Startup Inc</span>
+                  <p>Listed on Nov 15</p>
+                </div>
+                <strong class="metric-positive">+85%</strong>
+              </article>
+              <article class="mover-item">
+                <div>
+                  <span class="panel-label">Fintech Solutions</span>
+                  <p>Listed on Nov 20</p>
+                </div>
+                <strong class="metric-positive">+62%</strong>
+              </article>
+              <article class="mover-item">
+                <div>
+                  <span class="panel-label">EV Motors Ltd</span>
+                  <p>Listed on Nov 25</p>
+                </div>
+                <strong class="metric-positive">+45%</strong>
+              </article>
+            </div>
+          </section>
+        </aside>
+      </section>
+    <script src="ipo-script.js"></script>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand-mark">🧞</div>
+        <div>
+          <strong>Aladdin Investing</strong>
+          <p>Track IPOs across global markets with real-time subscription data.</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>

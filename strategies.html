@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aladdin Investing - Investment Strategies</title>
+  <meta
+    name="description"
+    content="Curated investment strategies including Blue Chip, Value Investing, Momentum, and Quantitative approaches with top 10 stock picks for each strategy."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand-mark">🧞</div>
+        <div class="brand-copy">
+          <span class="brand-title">Aladdin Investing</span>
+          <span class="brand-subtitle">Smart Investment Platform</span>
+        </div>
+      </div>
+
+      <nav class="primary-nav" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Stock Screener</a>
+        <a href="strategies.html" class="is-active">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="ghost-button" type="button">Search</button>
+        <button class="primary-button" type="button">Get Started</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-section">
+        <div class="hero-copy">
+          <p class="eyebrow">Investment Strategies</p>
+          <h1>Curated Stock Picks Based on Proven Strategies</h1>
+          <p class="hero-text">
+            Explore our algorithm-driven investment strategies. Each strategy identifies the top 10 stocks 
+            based on specific criteria like value, momentum, quality, or quantitative models. 
+            Perfect for building a diversified portfolio aligned with your investment philosophy.
+          </p>
+        </div>
+      </section>
+
+      <!-- Strategy Selection -->
+      <section class="market-switcher">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Select Strategy</p>
+            <h2>Investment Approaches</h2>
+          </div>
+        </div>
+        <div class="tab-row">
+          <button class="is-active">Blue Chip</button>
+          <button>Value Investing</button>
+          <button>Momentum</button>
+          <button>Quantitative</button>
+          <button>Growth</button>
+          <button>Dividend</button>
+        </div>
+      </section>
+
+      <!-- Strategy Details -->
+      <section class="content-grid">
+        <div class="main-column">
+          <!-- Blue Chip Strategy -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Blue Chip Strategy</p>
+                <h3>Top 10 Established Market Leaders</h3>
+              </div>
+              <span class="status-pill positive">Active</span>
+            </div>
+
+            <div class="strategy-description">
+              <h4>Strategy Overview</h4>
+              <p>
+                Blue chip stocks are shares of well-established companies with a history of reliable performance, 
+                strong financials, and market leadership. These companies typically have large market capitalizations, 
+                stable earnings, and often pay regular dividends.
+              </p>
+              
+              <h4>Selection Criteria</h4>
+              <ul>
+                <li>Market Cap > ₹50,000 Crores</li>
+                <li>Consistent profitability for 10+ years</li>
+                <li>Strong brand recognition and market position</li>
+                <li>Regular dividend payments</li>
+                <li>Low debt-to-equity ratio (< 1.0)</li>
+                <li>ROE > 15% consistently</li>
+              </ul>
+
+              <h4>Risk Profile</h4>
+              <div class="risk-meter">
+                <span class="risk-label">Low Risk</span>
+                <div class="risk-bar">
+                  <div class="risk-fill" style="width: 30%; background: #22c55e;"></div>
+                </div>
+                <span class="risk-label">High Risk</span>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="economy-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Symbol</th>
+                    <th>Company</th>
+                    <th>Sector</th>
+                    <th>Price</th>
+                    <th>Mkt Cap</th>
+                    <th>P/E</th>
+                    <th>ROE %</th>
+                    <th>Div Yield %</th>
+                    <th>Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>1</strong></td>
+                    <td><strong>RELIANCE</strong></td>
+                    <td>Reliance Industries</td>
+                    <td>Conglomerate</td>
+                    <td>₹2,450</td>
+                    <td>₹16.5L Cr</td>
+                    <td>22.1</td>
+                    <td class="metric-positive">9.5%</td>
+                    <td>0.5%</td>
+                    <td class="metric-positive">95</td>
+                  </tr>
+                  <tr>
+                    <td><strong>2</strong></td>
+                    <td><strong>TCS</strong></td>
+                    <td>Tata Consultancy Services</td>
+                    <td>IT Services</td>
+                    <td>₹3,520</td>
+                    <td>₹12.8L Cr</td>
+                    <td>28.3</td>
+                    <td class="metric-positive">42.8%</td>
+                    <td>2.8%</td>
+                    <td class="metric-positive">93</td>
+                  </tr>
+                  <tr>
+                    <td><strong>3</strong></td>
+                    <td><strong>HDFCBANK</strong></td>
+                    <td>HDFC Bank</td>
+                    <td>Private Banks</td>
+                    <td>₹1,650</td>
+                    <td>₹9.2L Cr</td>
+                    <td>18.5</td>
+                    <td class="metric-positive">16.2%</td>
+                    <td>1.2%</td>
+                    <td class="metric-positive">92</td>
+                  </tr>
+                  <tr>
+                    <td><strong>4</strong></td>
+                    <td><strong>INFY</strong></td>
+                    <td>Infosys</td>
+                    <td>IT Services</td>
+                    <td>₹1,420</td>
+                    <td>₹5.9L Cr</td>
+                    <td>24.6</td>
+                    <td class="metric-positive">28.5%</td>
+                    <td>2.5%</td>
+                    <td class="metric-positive">90</td>
+                  </tr>
+                  <tr>
+                    <td><strong>5</strong></td>
+                    <td><strong>ITC</strong></td>
+                    <td>ITC Ltd</td>
+                    <td>FMCG</td>
+                    <td>₹420</td>
+                    <td>₹5.2L Cr</td>
+                    <td>28.9</td>
+                    <td class="metric-positive">24.8%</td>
+                    <td>3.8%</td>
+                    <td class="metric-positive">89</td>
+                  </tr>
+                  <tr>
+                    <td><strong>6</strong></td>
+                    <td><strong>ICICIBANK</strong></td>
+                    <td>ICICI Bank</td>
+                    <td>Private Banks</td>
+                    <td>₹950</td>
+                    <td>₹6.7L Cr</td>
+                    <td>16.2</td>
+                    <td class="metric-positive">15.8%</td>
+                    <td>1.0%</td>
+                    <td class="metric-positive">88</td>
+                  </tr>
+                  <tr>
+                    <td><strong>7</strong></td>
+                    <td><strong>HINDUNILVR</strong></td>
+                    <td>Hindustan Unilever</td>
+                    <td>FMCG</td>
+                    <td>₹2,380</td>
+                    <td>₹5.6L Cr</td>
+                    <td>58.2</td>
+                    <td class="metric-positive">82.5%</td>
+                    <td>1.8%</td>
+                    <td class="metric-positive">87</td>
+                  </tr>
+                  <tr>
+                    <td><strong>8</strong></td>
+                    <td><strong>BHARTIARTL</strong></td>
+                    <td>Bharti Airtel</td>
+                    <td>Telecom</td>
+                    <td>₹1,180</td>
+                    <td>₹6.8L Cr</td>
+                    <td>42.5</td>
+                    <td class="metric-positive">12.8%</td>
+                    <td>0.7%</td>
+                    <td class="metric-positive">86</td>
+                  </tr>
+                  <tr>
+                    <td><strong>9</strong></td>
+                    <td><strong>SBIN</strong></td>
+                    <td>State Bank of India</td>
+                    <td>Public Banks</td>
+                    <td>₹620</td>
+                    <td>₹5.5L Cr</td>
+                    <td>9.8</td>
+                    <td class="metric-positive">18.2%</td>
+                    <td>1.5%</td>
+                    <td class="metric-positive">85</td>
+                  </tr>
+                  <tr>
+                    <td><strong>10</strong></td>
+                    <td><strong>BAJFINANCE</strong></td>
+                    <td>Bajaj Finance</td>
+                    <td>NBFCs</td>
+                    <td>₹6,850</td>
+                    <td>₹4.2L Cr</td>
+                    <td>32.5</td>
+                    <td class="metric-positive">22.5%</td>
+                    <td>0.3%</td>
+                    <td class="metric-positive">84</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="strategy-actions">
+              <button class="primary-button">Download Report</button>
+              <button class="secondary-button">Add to Watchlist</button>
+              <button class="ghost-button">View Detailed Analysis</button>
+            </div>
+          </section>
+
+          <!-- Strategy Performance -->
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Performance</p>
+                <h3>Historical Returns</h3>
+              </div>
+            </div>
+
+            <div class="performance-grid">
+              <div class="performance-card">
+                <span class="performance-label">1 Month</span>
+                <span class="performance-value metric-positive">+3.2%</span>
+              </div>
+              <div class="performance-card">
+                <span class="performance-label">3 Months</span>
+                <span class="performance-value metric-positive">+8.5%</span>
+              </div>
+              <div class="performance-card">
+                <span class="performance-label">6 Months</span>
+                <span class="performance-value metric-positive">+15.8%</span>
+              </div>
+              <div class="performance-card">
+                <span class="performance-label">1 Year</span>
+                <span class="performance-value metric-positive">+28.4%</span>
+              </div>
+              <div class="performance-card">
+                <span class="performance-label">3 Years (CAGR)</span>
+                <span class="performance-value metric-positive">+18.2%</span>
+              </div>
+              <div class="performance-card">
+                <span class="performance-label">5 Years (CAGR)</span>
+                <span class="performance-value metric-positive">+16.5%</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="side-column">
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">All Strategies</p>
+                <h3>Quick Access</h3>
+              </div>
+            </div>
+            <div class="strategy-list">
+              <button class="strategy-item is-active">
+                <span class="strategy-icon">💎</span>
+                <div>
+                  <strong>Blue Chip</strong>
+                  <p>Market leaders</p>
+                </div>
+              </button>
+              <button class="strategy-item">
+                <span class="strategy-icon">💰</span>
+                <div>
+                  <strong>Value Investing</strong>
+                  <p>Undervalued stocks</p>
+                </div>
+              </button>
+              <button class="strategy-item">
+                <span class="strategy-icon">🚀</span>
+                <div>
+                  <strong>Momentum</strong>
+                  <p>Strong price trends</p>
+                </div>
+              </button>
+              <button class="strategy-item">
+                <span class="strategy-icon">🔢</span>
+                <div>
+                  <strong>Quantitative</strong>
+                  <p>Algorithm-driven</p>
+                </div>
+              </button>
+              <button class="strategy-item">
+                <span class="strategy-icon">📈</span>
+                <div>
+                  <strong>Growth</strong>
+                  <p>High growth potential</p>
+                </div>
+              </button>
+              <button class="strategy-item">
+                <span class="strategy-icon">💵</span>
+                <div>
+                  <strong>Dividend</strong>
+                  <p>High dividend yield</p>
+                </div>
+              </button>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-card-header">
+              <div>
+                <p class="panel-label">Strategy Stats</p>
+                <h3>Key Metrics</h3>
+              </div>
+            </div>
+            <div class="stat-list">
+              <div class="stat-item">
+                <span class="label">Total Stocks</span>
+                <span class="value">10</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Avg Market Cap</span>
+                <span class="value">₹7.8L Cr</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Avg P/E Ratio</span>
+                <span class="value">28.2</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Avg ROE</span>
+                <span class="value metric-positive">27.4%</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Avg Div Yield</span>
+                <span class="value">1.6%</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Last Updated</span>
+                <span class="value">Today, 3:30 PM</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </section>
+    <script src="strategies-script.js"></script>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand-mark">🧞</div>
+        <div>
+          <strong>Aladdin Investing</strong>
+          <p>Curated investment strategies with algorithm-driven stock selection.</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="markets.html">Markets</a>
+        <a href="ipo-calendar.html">IPO Calendar</a>
+        <a href="screener.html">Screener</a>
+        <a href="strategies.html">Strategies</a>
+        <a href="analysis.html">Analysis</a>
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>

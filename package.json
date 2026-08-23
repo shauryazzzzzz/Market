@@ -1,0 +1,53 @@
+{
+  "name": "aladdin-investing",
+  "version": "3.0.0",
+  "description": "Aladdin Investing — AI-powered unified financial investor platform for Indian markets. Integrates Fundamentals, Technical Analysis, SankeyMATIC Financial Flow, Advanced GS Screener, News Intelligence, IPO Calendar, Portfolio X-Ray, DCF Calculator, Financial Monitor, and NewsFeed AI.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "cd frontend && npm run build",
+    "build:full": "cd frontend && npm install && npm run build",
+    "platform": "start-platform.bat",
+    "api": "node api/server.js",
+    "fetch:economy": "node fetch-data.js",
+    "fetch:stocks": "node fetchers/nse-stock-fetcher.js",
+    "init:db": "node database/init-db.js"
+  },
+  "keywords": [
+    "investing",
+    "stocks",
+    "NSE",
+    "India",
+    "sankey",
+    "screener",
+    "portfolio",
+    "DCF",
+    "watsonx",
+    "ai",
+    "finance",
+    "fundamentals",
+    "technical-analysis"
+  ],
+  "author": "Saurabh Solanki",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SaurabhSolanki26/aladdin-investing.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "node-cron": "^3.0.3",
+    "yahoo-finance2": "^4.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
