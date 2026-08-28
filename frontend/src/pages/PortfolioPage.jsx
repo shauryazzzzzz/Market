@@ -9,7 +9,7 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar,
   XAxis, YAxis, Legend, CartesianGrid,
 } from 'recharts'
-import { Loading, ErrorBox, fmtCr, fmtPct, fmt, GradeBadge, Signal } from '../components/shared'
+import { Loading, ErrorBox, fmtCr, fmtPct, fmt, GradeBadge, Signal, RangePicker, RangeChg, useHistoricalChanges } from '../components/shared'
 
 const STORAGE_KEY = 'aladdin_portfolio_v1'
 const COLORS = [
@@ -145,7 +145,7 @@ function PnLChart({ rows }) {
 }
 
 // ── Holdings Table ────────────────────────────────────────────────────────────
-function HoldingsTable({ rows, onDelete, loading }) {
+function HoldingsTable({ rows, onDelete, loading, range, rangeChanges, rangeLoading }) {
   if (!rows.length) return (
     <div className="loading" style={{ height: 120 }}>Add your first holding using the form above</div>
   )
@@ -163,48 +163,55 @@ function HoldingsTable({ rows, onDelete, loading }) {
             <th>Current Val</th>
             <th>P&L</th>
             <th>P&L %</th>
+            <th>Chg {range !== '1D' ? `(${range})` : '(1D)'}</th>
             <th>Grade</th>
             <th>Signal</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <td className="sym">{r.symbol}</td>
-              <td style={{ fontSize: 11, color: 'var(--muted)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {r.fundamentals?.industry || '—'}
-              </td>
-              <td>{r.qty.toLocaleString()}</td>
-              <td>₹{r.avgPrice.toFixed(2)}</td>
-              <td>
-                {loading && !r.livePrice ? <span style={{ color: 'var(--muted)' }}>…</span> :
-                  r.livePrice ? `₹${r.livePrice.toFixed(2)}` : '—'}
-              </td>
-              <td>{fmtCr(r.investedValue / 10000000)}</td>
-              <td>{r.currentValue ? fmtCr(r.currentValue / 10000000) : '—'}</td>
-              <td>
-                {r.pnlAbs != null ? (
-                  <span className={r.pnlAbs >= 0 ? 'metric-pos' : 'metric-neg'}>
-                    {r.pnlAbs >= 0 ? '+' : ''}₹{Math.abs(r.pnlAbs).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </span>
-                ) : '—'}
-              </td>
-              <td>
-                {r.pnlPct != null ? (
-                  <span className={r.pnlPct >= 0 ? 'metric-pos' : 'metric-neg'}>
-                    {r.pnlPct >= 0 ? '+' : ''}{r.pnlPct.toFixed(2)}%
-                  </span>
-                ) : '—'}
-              </td>
-              <td><GradeBadge grade={r.fundamentals?.grade?.grade} /></td>
-              <td><Signal rating={r.fundamentals?.grade?.recommendation} /></td>
-              <td>
-                <button className="btn btn-sm btn-ghost" onClick={() => onDelete(i)}
-                  style={{ color: 'var(--negative)', padding: '2px 8px' }}>✕</button>
-              </td>
-            </tr>
-          ))}
+          {rows.map((r, i) => {
+            const nsSym = r.symbol.includes('.NS') ? r.symbol : r.symbol + '.NS'
+            return (
+              <tr key={i}>
+                <td className="sym">{r.symbol}</td>
+                <td style={{ fontSize: 11, color: 'var(--muted)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {r.fundamentals?.industry || '—'}
+                </td>
+                <td>{r.qty.toLocaleString()}</td>
+                <td>₹{r.avgPrice.toFixed(2)}</td>
+                <td>
+                  {loading && !r.livePrice ? <span style={{ color: 'var(--muted)' }}>…</span> :
+                    r.livePrice ? `₹${r.livePrice.toFixed(2)}` : '—'}
+                </td>
+                <td>{fmtCr(r.investedValue / 10000000)}</td>
+                <td>{r.currentValue ? fmtCr(r.currentValue / 10000000) : '—'}</td>
+                <td>
+                  {r.pnlAbs != null ? (
+                    <span className={r.pnlAbs >= 0 ? 'metric-pos' : 'metric-neg'}>
+                      {r.pnlAbs >= 0 ? '+' : ''}₹{Math.abs(r.pnlAbs).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </span>
+                  ) : '—'}
+                </td>
+                <td>
+                  {r.pnlPct != null ? (
+                    <span className={r.pnlPct >= 0 ? 'metric-pos' : 'metric-neg'}>
+                      {r.pnlPct >= 0 ? '+' : ''}{r.pnlPct.toFixed(2)}%
+                    </span>
+                  ) : '—'}
+                </td>
+                <td>
+                  <RangeChg dailyPct={null} rangePct={rangeChanges?.[nsSym]} range={range} loading={rangeLoading} />
+                </td>
+                <td><GradeBadge grade={r.fundamentals?.grade?.grade} /></td>
+                <td><Signal rating={r.fundamentals?.grade?.recommendation} /></td>
+                <td>
+                  <button className="btn btn-sm btn-ghost" onClick={() => onDelete(i)}
+                    style={{ color: 'var(--negative)', padding: '2px 8px' }}>✕</button>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -218,6 +225,11 @@ export default function PortfolioPage() {
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState(null)
   const [activeTab, setActiveTab] = useState('holdings')
+  const [range,     setRange]     = useState('1D')
+
+  // Range-change fetching for all holdings
+  const holdingSymbols = useMemo(() => enriched.map(r => r.symbol.includes('.NS') ? r.symbol : r.symbol + '.NS'), [enriched.map(r=>r.symbol).join(',')]) // eslint-disable-line
+  const { changes: rangeChg, loading: rangeL } = useHistoricalChanges(holdingSymbols, range)
 
   // Enrich all holdings: fundamentals + live price
   const enrich = useCallback(async (raw) => {
@@ -346,16 +358,20 @@ export default function PortfolioPage() {
       {/* Tabs */}
       {summary.count > 0 && (
         <>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {TABS.map(t => (
-              <button key={t.id} className={`btn btn-sm ${activeTab === t.id ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setActiveTab(t.id)}>{t.label}</button>
-            ))}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {TABS.map(t => (
+                <button key={t.id} className={`btn btn-sm ${activeTab === t.id ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setActiveTab(t.id)}>{t.label}</button>
+              ))}
+            </div>
+            {activeTab === 'holdings' && <RangePicker selected={range} onChange={setRange} />}
           </div>
 
           {activeTab === 'holdings' && (
             <div className="card">
-              <HoldingsTable rows={enriched} onDelete={deleteHolding} loading={loading} />
+              <HoldingsTable rows={enriched} onDelete={deleteHolding} loading={loading}
+                range={range} rangeChanges={rangeChg} rangeLoading={rangeL} />
             </div>
           )}
 

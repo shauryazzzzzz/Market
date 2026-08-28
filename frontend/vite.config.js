@@ -27,6 +27,12 @@ export default defineConfig({
   },
   build: {
     outDir: '../public-react',
-    emptyOutDir: true
+    emptyOutDir: true,
+    modulePreload: { polyfill: false },
+    rollupOptions: {
+      output: {
+        crossOriginLoading: false
+      }
+    }
   }
 })

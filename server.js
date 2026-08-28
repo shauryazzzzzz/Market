@@ -17,9 +17,13 @@ app.use(express.json());
 const REACT_BUILD = path.join(__dirname, 'public-react');
 const fs = require('fs');
 if (fs.existsSync(REACT_BUILD)) {
-  app.use(express.static(REACT_BUILD));
-  // SPA catch-all — serve index.html for all non-API routes
-  app.get(/^(?!\/api).*$/, (req, res) => {
+  // Serve static assets (JS, CSS, images) directly — with cache
+  app.use(express.static(REACT_BUILD, { index: false }));
+  // SPA catch-all — ONLY for HTML navigation routes, never for assets
+  // Excludes: /api/*, /assets/*, and any path with a file extension
+  app.get(/^(?!\/(api|assets)\/)(?!.*\.\w{2,5}$).*$/, (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     res.sendFile(path.join(REACT_BUILD, 'index.html'));
   });
   console.log('Serving React build from public-react/');
@@ -92,28 +96,30 @@ app.get('/api/quotes/commodities', async (req, res) => {
   try {
     const results = await Promise.allSettled(
       COMMODITY_SYMBOLS.map(c =>
-        _yf_commodities.quote(c.symbol, {}, { validateResult: false }).then(q => ({ meta: c, q })).catch(() => null)
+        _yf_commodities.quote(c.symbol, {}, { validateResult: false })
+          .then(q => ({ meta: c, q }))
+          .catch(() => null)
       )
     );
     const commodities = results
-      .filter(r => r.status === 'fulfilled' && r.value)
+      .filter(r => r.status === 'fulfilled' && r.value != null && r.value.q != null)
       .map(r => {
         const { meta, q } = r.value;
         return {
-          symbol:       meta.symbol,
-          name:         meta.name,
-          unit:         meta.unit,
+          symbol:         meta.symbol,
+          name:           meta.name,
+          unit:           meta.unit,
           currencySymbol: meta.currencySymbol,
-          currency:     q.currency || 'USD',
-          price:        q.regularMarketPrice,
-          changePct:    q.regularMarketChangePercent,
-          change:       q.regularMarketChange,
-          dayHigh:      q.regularMarketDayHigh,
-          dayLow:       q.regularMarketDayLow,
-          week52High:   q.fiftyTwoWeekHigh,
-          week52Low:    q.fiftyTwoWeekLow,
-          volume:       q.regularMarketVolume,
-          isLive:       true,
+          currency:       (q && q.currency) ? q.currency : 'USD',
+          price:          q ? q.regularMarketPrice : null,
+          changePct:      q ? q.regularMarketChangePercent : null,
+          change:         q ? q.regularMarketChange : null,
+          dayHigh:        q ? q.regularMarketDayHigh : null,
+          dayLow:         q ? q.regularMarketDayLow : null,
+          week52High:     q ? q.fiftyTwoWeekHigh : null,
+          week52Low:      q ? q.fiftyTwoWeekLow : null,
+          volume:         q ? q.regularMarketVolume : null,
+          isLive:         true,
         };
       })
       .filter(c => c.price != null);
@@ -123,6 +129,380 @@ app.get('/api/quotes/commodities', async (req, res) => {
   }
 });
 let _yf_commodities = null;
+
+
+// ── NSE + Sectoral indices ────────────────────────────────────────────────────
+app.get('/api/quotes/indices', async (req, res) => {
+  const INDICES = [
+    { symbol: '^NSEI',       name: 'Nifty 50'        },
+    { symbol: '^BSESN',      name: 'Sensex'          },
+    { symbol: '^NSMIDCP100', name: 'Nifty Midcap 100'},
+    { symbol: '^NSMIDCP',    name: 'Nifty Midcap 50' },
+    { symbol: '^CNXAUTO',    name: 'Nifty Auto'      },
+    { symbol: '^CNXPHARMA',  name: 'Nifty Pharma'    },
+    { symbol: '^CNXFMCG',    name: 'Nifty FMCG'      },
+    { symbol: '^CNXMETAL',   name: 'Nifty Metal'     },
+    { symbol: '^CNXREALTY',  name: 'Nifty Realty'    },
+    { symbol: '^CNXENERGY',  name: 'Nifty Energy'    },
+    { symbol: '^CNXINFRA',   name: 'Nifty Infra'     },
+    { symbol: '^CNXPSUBANK', name: 'Nifty PSU Bank'  },
+    { symbol: '^NSPRVBNK',   name: 'Nifty Pvt Bank'  },
+    { symbol: 'NIFTYIT.NS',  name: 'Nifty IT'        },
+    { symbol: '^CNXBANK',    name: 'Nifty Bank'      },
+  ];
+  if (!_yf) return res.json({ indices: [], isLive: false });
+  try {
+    const results = await Promise.allSettled(
+      INDICES.map(idx =>
+        _yf.quote(idx.symbol, {}, { validateResult: false })
+          .then(q => ({ meta: idx, q }))
+          .catch(() => null)
+      )
+    );
+    const indices = results
+      .filter(r => r.status === 'fulfilled' && r.value && r.value.q && r.value.q.regularMarketPrice != null)
+      .map(r => {
+        const { meta, q } = r.value;
+        return {
+          symbol:    meta.symbol,
+          name:      meta.name,
+          price:     q.regularMarketPrice,
+          change:    q.regularMarketChange,
+          changePct: q.regularMarketChangePercent,
+          dayHigh:   q.regularMarketDayHigh,
+          dayLow:    q.regularMarketDayLow,
+          prevClose: q.regularMarketPreviousClose,
+          isLive:    true,
+        };
+      });
+    res.json({ indices, isLive: indices.length > 0, count: indices.length });
+  } catch (e) {
+    res.json({ indices: [], isLive: false, error: e.message });
+  }
+});
+
+// ── Global indices ────────────────────────────────────────────────────────────
+app.get('/api/quotes/global', async (req, res) => {
+  const GLOBALS = [
+    { symbol: '^GSPC',     name: 'S&P 500'    },
+    { symbol: '^IXIC',     name: 'Nasdaq'     },
+    { symbol: '^DJI',      name: 'Dow Jones'  },
+    { symbol: '^FTSE',     name: 'FTSE 100'   },
+    { symbol: '^GDAXI',    name: 'DAX'        },
+    { symbol: '^N225',     name: 'Nikkei 225' },
+    { symbol: '^HSI',      name: 'Hang Seng'  },
+    { symbol: '000001.SS', name: 'Shanghai'   },
+  ];
+  if (!_yf) return res.json({ indices: [], isLive: false });
+  try {
+    const results = await Promise.allSettled(
+      GLOBALS.map(idx =>
+        _yf.quote(idx.symbol, {}, { validateResult: false })
+          .then(q => ({ meta: idx, q }))
+          .catch(() => null)
+      )
+    );
+    const indices = results
+      .filter(r => r.status === 'fulfilled' && r.value && r.value.q && r.value.q.regularMarketPrice != null)
+      .map(r => {
+        const { meta, q } = r.value;
+        return {
+          symbol:    meta.symbol,
+          name:      meta.name,
+          price:     q.regularMarketPrice,
+          change:    q.regularMarketChange,
+          changePct: q.regularMarketChangePercent,
+          currency:  q.currency,
+          isLive:    true,
+        };
+      });
+    res.json({ indices, isLive: indices.length > 0, count: indices.length });
+  } catch (e) {
+    res.json({ indices: [], isLive: false, error: e.message });
+  }
+});
+
+// ── Forex / Currency ──────────────────────────────────────────────────────────
+app.get('/api/quotes/forex', async (req, res) => {
+  const FOREX = [
+    { symbol: 'INR=X',    name: 'USD/INR' },
+    { symbol: 'EURINR=X', name: 'EUR/INR' },
+    { symbol: 'GBPINR=X', name: 'GBP/INR' },
+    { symbol: 'JPYINR=X', name: 'JPY/INR' },
+    { symbol: 'DX-Y.NYB', name: 'DXY'    },
+  ];
+  if (!_yf) return res.json({ forex: [], isLive: false });
+  try {
+    const results = await Promise.allSettled(
+      FOREX.map(f =>
+        _yf.quote(f.symbol, {}, { validateResult: false })
+          .then(q => ({ meta: f, q }))
+          .catch(() => null)
+      )
+    );
+    const forex = results
+      .filter(r => r.status === 'fulfilled' && r.value && r.value.q && r.value.q.regularMarketPrice != null)
+      .map(r => {
+        const { meta, q } = r.value;
+        return {
+          symbol:    meta.symbol,
+          name:      meta.name,
+          price:     q.regularMarketPrice,
+          change:    q.regularMarketChange,
+          changePct: q.regularMarketChangePercent,
+          isLive:    true,
+        };
+      });
+    res.json({ forex, isLive: forex.length > 0, count: forex.length });
+  } catch (e) {
+    res.json({ forex: [], isLive: false, error: e.message });
+  }
+});
+
+// ── Derivatives snapshot — Nifty + BankNifty spot (futures symbols may 404) ──
+app.get('/api/quotes/derivatives', async (req, res) => {
+  const SPOTS = [
+    { symbol: '^NSEI',    name: 'Nifty 50'   },
+    { symbol: '^CNXBANK', name: 'Bank Nifty' },
+  ];
+  const FUTS = [
+    { symbol: 'NIFTYFUT.NS',    name: 'Nifty Futures'     },
+    { symbol: 'BANKNIFTYFUT.NS', name: 'BankNifty Futures' },
+  ];
+  if (!_yf) return res.json({ derivatives: [], isLive: false });
+  try {
+    const allSyms = [...SPOTS, ...FUTS];
+    const results = await Promise.allSettled(
+      allSyms.map(d =>
+        _yf.quote(d.symbol, {}, { validateResult: false })
+          .then(q => ({ sym: d.symbol, q }))
+          .catch(() => null)
+      )
+    );
+    const q = {};
+    results.forEach(r => {
+      if (r.status === 'fulfilled' && r.value) q[r.value.sym] = r.value.q;
+    });
+    const niftySpot = q['^NSEI']?.regularMarketPrice;
+    const bnkSpot   = q['^CNXBANK']?.regularMarketPrice;
+    const niftyFut  = q['NIFTYFUT.NS']?.regularMarketPrice;
+    const bnkFut    = q['BANKNIFTYFUT.NS']?.regularMarketPrice;
+    const derivatives = [
+      {
+        name:       'Nifty 50',
+        spot:       niftySpot,
+        futures:    niftyFut || null,
+        premium:    niftyFut && niftySpot ? parseFloat((niftyFut - niftySpot).toFixed(2)) : null,
+        premiumPct: niftyFut && niftySpot ? parseFloat(((niftyFut - niftySpot) / niftySpot * 100).toFixed(3)) : null,
+        changePct:  q['^NSEI']?.regularMarketChangePercent,
+        change:     q['^NSEI']?.regularMarketChange,
+      },
+      {
+        name:       'Bank Nifty',
+        spot:       bnkSpot,
+        futures:    bnkFut || null,
+        premium:    bnkFut && bnkSpot ? parseFloat((bnkFut - bnkSpot).toFixed(2)) : null,
+        premiumPct: bnkFut && bnkSpot ? parseFloat(((bnkFut - bnkSpot) / bnkSpot * 100).toFixed(3)) : null,
+        changePct:  q['^CNXBANK']?.regularMarketChangePercent,
+        change:     q['^CNXBANK']?.regularMarketChange,
+      },
+    ];
+    res.json({ derivatives, isLive: !!(niftySpot || bnkSpot) });
+  } catch (e) {
+    res.json({ derivatives: [], isLive: false, error: e.message });
+  }
+});
+
+
+// ── Per-country equity markets (CN, JP, DE, BR, KR) via Yahoo Finance ─────────
+app.get('/api/quotes/country', async (req, res) => {
+  if (!_yf) return res.json({ stocks: [], isLive: false, error: 'yahoo-finance2 unavailable' });
+  const COUNTRY_SYMBOLS = {
+    CN: [
+      { symbol: 'BABA', name: 'Alibaba', sector: 'Technology', cap: 'Large Cap' },
+      { symbol: 'JD',   name: 'JD.com',  sector: 'Consumer',   cap: 'Large Cap' },
+      { symbol: 'PDD',  name: 'Temu/Pinduoduo', sector: 'Consumer', cap: 'Large Cap' },
+      { symbol: 'BIDU', name: 'Baidu',   sector: 'Technology', cap: 'Large Cap' },
+      { symbol: 'NIO',  name: 'NIO',     sector: 'Auto',        cap: 'Mid Cap'   },
+      { symbol: 'XPEV', name: 'XPeng',   sector: 'Auto',        cap: 'Mid Cap'   },
+      { symbol: 'LI',   name: 'Li Auto', sector: 'Auto',        cap: 'Mid Cap'   },
+      { symbol: 'BEKE', name: 'KE Holdings', sector: 'Real Estate', cap: 'Mid Cap' },
+      { symbol: '0700.HK', name: 'Tencent', sector: 'Technology', cap: 'Large Cap' },
+      { symbol: '2318.HK', name: 'Ping An', sector: 'Financial', cap: 'Large Cap' },
+    ],
+    JP: [
+      { symbol: '7203.T', name: 'Toyota',      sector: 'Auto',       cap: 'Large Cap' },
+      { symbol: '6758.T', name: 'Sony',         sector: 'Technology', cap: 'Large Cap' },
+      { symbol: '9984.T', name: 'SoftBank',     sector: 'Technology', cap: 'Large Cap' },
+      { symbol: '6861.T', name: 'Keyence',      sector: 'Technology', cap: 'Large Cap' },
+      { symbol: '8306.T', name: 'MUFG Bank',    sector: 'Financial',  cap: 'Large Cap' },
+      { symbol: '9432.T', name: 'NTT',          sector: 'Telecom',    cap: 'Large Cap' },
+      { symbol: '4063.T', name: 'Shin-Etsu Chem', sector: 'Industrials', cap: 'Large Cap' },
+      { symbol: '6367.T', name: 'Daikin',       sector: 'Industrials', cap: 'Large Cap' },
+      { symbol: '7974.T', name: 'Nintendo',     sector: 'Technology', cap: 'Large Cap' },
+      { symbol: '4568.T', name: 'Daiichi Sankyo', sector: 'Healthcare', cap: 'Large Cap' },
+    ],
+    DE: [
+      { symbol: 'SAP',  name: 'SAP',           sector: 'Technology', cap: 'Large Cap' },
+      { symbol: 'SIEGY',name: 'Siemens',        sector: 'Industrials', cap: 'Large Cap' },
+      { symbol: 'BAYRY',name: 'Bayer',          sector: 'Healthcare', cap: 'Large Cap' },
+      { symbol: 'BMWYY',name: 'BMW',            sector: 'Auto',       cap: 'Large Cap' },
+      { symbol: 'VWAGY',name: 'Volkswagen',     sector: 'Auto',       cap: 'Large Cap' },
+      { symbol: 'DBOEY',name: 'Deutsche Börse', sector: 'Financial',  cap: 'Large Cap' },
+      { symbol: 'DTEGY',name: 'Deutsche Telekom', sector: 'Telecom',  cap: 'Large Cap' },
+      { symbol: 'BASFY',name: 'BASF',           sector: 'Industrials', cap: 'Large Cap' },
+      { symbol: 'ADDYY',name: 'Adidas',         sector: 'Consumer',   cap: 'Large Cap' },
+      { symbol: 'ALIZY',name: 'Allianz',        sector: 'Financial',  cap: 'Large Cap' },
+    ],
+    BR: [
+      { symbol: 'VALE', name: 'Vale',           sector: 'Metals',     cap: 'Large Cap' },
+      { symbol: 'PBR',  name: 'Petrobras',      sector: 'Energy',     cap: 'Large Cap' },
+      { symbol: 'ITUB', name: 'Itaú Unibanco',  sector: 'Financial',  cap: 'Large Cap' },
+      { symbol: 'ABEV', name: 'Ambev',          sector: 'Consumer',   cap: 'Large Cap' },
+      { symbol: 'BBD',  name: 'Bradesco',       sector: 'Financial',  cap: 'Large Cap' },
+      { symbol: 'SID',  name: 'CSN Steel',      sector: 'Metals',     cap: 'Mid Cap'   },
+      { symbol: 'CIG',  name: 'CEMIG',          sector: 'Energy',     cap: 'Mid Cap'   },
+      { symbol: 'ELP',  name: 'Eletrobras',     sector: 'Energy',     cap: 'Mid Cap'   },
+    ],
+    KR: [
+      { symbol: '005930.KS', name: 'Samsung Elec', sector: 'Technology', cap: 'Large Cap' },
+      { symbol: '000660.KS', name: 'SK Hynix',     sector: 'Technology', cap: 'Large Cap' },
+      { symbol: '035420.KS', name: 'NAVER',         sector: 'Technology', cap: 'Large Cap' },
+      { symbol: '051910.KS', name: 'LG Chem',       sector: 'Industrials', cap: 'Large Cap' },
+      { symbol: '207940.KS', name: 'Samsung Biologics', sector: 'Healthcare', cap: 'Large Cap' },
+      { symbol: '005380.KS', name: 'Hyundai Motor', sector: 'Auto',      cap: 'Large Cap' },
+      { symbol: '006400.KS', name: 'Samsung SDI',   sector: 'Industrials', cap: 'Large Cap' },
+      { symbol: '028260.KS', name: 'Samsung C&T',   sector: 'Financial',  cap: 'Large Cap' },
+    ],
+  };
+
+  const code = (req.query.code || '').toUpperCase();
+  const list = COUNTRY_SYMBOLS[code];
+  if (!list) return res.json({ stocks: [], isLive: false, error: `Unknown country code: ${code}` });
+
+  try {
+    const results = await Promise.allSettled(
+      list.map(s =>
+        _yf.quote(s.symbol, {}, { validateResult: false })
+          .then(q => ({ meta: s, q }))
+          .catch(() => null)
+      )
+    );
+    const stocks = results
+      .filter(r => r.status === 'fulfilled' && r.value && r.value.q && r.value.q.regularMarketPrice != null)
+      .map(r => {
+        const { meta, q } = r.value;
+        return {
+          symbol:   meta.symbol,
+          name:     meta.name,
+          sector:   meta.sector,
+          cap:      meta.cap,
+          price:    q.regularMarketPrice,
+          change:   q.regularMarketChangePercent,
+          mktcap:   q.marketCap ? q.marketCap / 1e7 : null,  // in Cr-equivalent
+          pe:       q.trailingPE,
+          pb:       q.priceToBook,
+          div:      q.trailingAnnualDividendYield ? q.trailingAnnualDividendYield * 100 : null,
+          currency: q.currency,
+          week52High: q.fiftyTwoWeekHigh,
+          week52Low:  q.fiftyTwoWeekLow,
+        };
+      });
+    res.json({ stocks, isLive: stocks.length > 0 });
+  } catch (e) {
+    res.json({ stocks: [], isLive: false, error: e.message });
+  }
+});
+
+// ── Asset class instruments — Gold ETFs, Bonds, Govt Bonds, Real Estate ────────
+app.get('/api/quotes/asset-class', async (req, res) => {
+  if (!_yf) return res.json({ instruments: [], isLive: false, error: 'yahoo-finance2 unavailable' });
+
+  const ASSET_CLASS_SYMBOLS = {
+    Gold: [
+      { symbol: 'GC=F',     name: 'Gold Futures',         subtype: 'Futures',  region: 'Global', currency: '$', unit: 'oz' },
+      { symbol: 'GLD',      name: 'SPDR Gold ETF',         subtype: 'ETF',      region: 'US',     currency: '$' },
+      { symbol: 'IAU',      name: 'iShares Gold ETF',      subtype: 'ETF',      region: 'US',     currency: '$' },
+      { symbol: 'GOLDBEES.NS', name: 'Nippon India Gold ETF', subtype: 'ETF',  region: 'India',  currency: '₹' },
+      { symbol: 'MCXGOLD.MCX', name: 'MCX Gold',          subtype: 'MCX',      region: 'India',  currency: '₹' },
+    ],
+    Bonds: [
+      { symbol: 'AGG',      name: 'iShares US Agg Bond',   subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'BND',      name: 'Vanguard Total Bond',    subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'LQD',      name: 'iShares IG Corporate',   subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'HYG',      name: 'iShares High Yield Corp',subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'CGLDBND.NS', name: 'India Corp Bond ETF',  subtype: 'ETF',  region: 'India', currency: '₹' },
+    ],
+    'Govt Bonds': [
+      { symbol: 'TLT',      name: 'iShares 20+Y T-Bond',   subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'IEF',      name: 'iShares 7-10Y T-Bond',  subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'SHY',      name: 'iShares 1-3Y T-Bond',   subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: '^TNX',     name: 'US 10Y Yield',           subtype: 'Yield',region: 'US',    currency: '%' },
+      { symbol: '^TYX',     name: 'US 30Y Yield',           subtype: 'Yield',region: 'US',    currency: '%' },
+      { symbol: 'ICICINIFTY.NS', name: 'ICICI Nifty G-Sec ETF', subtype: 'ETF', region: 'India', currency: '₹' },
+    ],
+    'Real Estate': [
+      { symbol: 'VNQ',      name: 'Vanguard REIT ETF',      subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'IYR',      name: 'iShares US Real Estate', subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'SCHH',     name: 'Schwab US REIT ETF',     subtype: 'ETF',  region: 'US',    currency: '$' },
+      { symbol: 'NIFTYREIT.NS', name: 'Nifty Realty Index', subtype: 'Index', region: 'India', currency: '₹' },
+    ],
+    ETF: [
+      { symbol: 'SPY',      name: 'SPDR S&P 500 ETF',       subtype: 'US Equity', region: 'US', currency: '$' },
+      { symbol: 'QQQ',      name: 'Invesco Nasdaq-100',      subtype: 'US Equity', region: 'US', currency: '$' },
+      { symbol: 'EEM',      name: 'iShares MSCI EM',         subtype: 'EM Equity', region: 'EM', currency: '$' },
+      { symbol: 'VEA',      name: 'Vanguard Dev Mkt',        subtype: 'Int\'l Eq', region: 'Global', currency: '$' },
+      { symbol: 'INDA',     name: 'iShares MSCI India',      subtype: 'India Eq', region: 'India', currency: '$' },
+      { symbol: 'NIFTYBEES.NS', name: 'Nippon Nifty BeES',  subtype: 'India Eq', region: 'India', currency: '₹' },
+    ],
+    MF: [
+      // Use large Indian MF AMC stocks as proxies (actual MF NAVs unavailable via Yahoo)
+      { symbol: 'HDFCAMC.NS', name: 'HDFC AMC',            subtype: 'AMC Stock', region: 'India', currency: '₹' },
+      { symbol: 'NIPPINDIA.NS', name: 'Nippon India AMC',  subtype: 'AMC Stock', region: 'India', currency: '₹' },
+      { symbol: 'UTIAMC.NS',  name: 'UTI AMC',             subtype: 'AMC Stock', region: 'India', currency: '₹' },
+      { symbol: 'ABCAPITAL.NS', name: 'Aditya Birla Cap',  subtype: 'AMC Stock', region: 'India', currency: '₹' },
+    ],
+  };
+
+  const assetClass = req.query.class || 'Gold';
+  const list = ASSET_CLASS_SYMBOLS[assetClass];
+  if (!list) return res.json({ instruments: [], isLive: false, error: `Unknown asset class: ${assetClass}` });
+
+  try {
+    const results = await Promise.allSettled(
+      list.map(s =>
+        _yf.quote(s.symbol, {}, { validateResult: false })
+          .then(q => ({ meta: s, q }))
+          .catch(() => null)
+      )
+    );
+    const instruments = results
+      .filter(r => r.status === 'fulfilled' && r.value && r.value.q && r.value.q.regularMarketPrice != null)
+      .map(r => {
+        const { meta, q } = r.value;
+        return {
+          symbol:   meta.symbol,
+          name:     meta.name,
+          subtype:  meta.subtype,
+          region:   meta.region,
+          currency: meta.currency,
+          unit:     meta.unit || null,
+          price:    q.regularMarketPrice,
+          change:   q.regularMarketChangePercent,
+          dayHigh:  q.regularMarketDayHigh,
+          dayLow:   q.regularMarketDayLow,
+          week52High: q.fiftyTwoWeekHigh,
+          week52Low:  q.fiftyTwoWeekLow,
+          mktcap:   q.marketCap ? q.marketCap / 1e7 : null,
+          pe:       q.trailingPE,
+          volume:   q.regularMarketVolume,
+        };
+      });
+    res.json({ instruments, isLive: instruments.length > 0 });
+  } catch (e) {
+    res.json({ instruments: [], isLive: false, error: e.message });
+  }
+});
 
 // ── AI endpoints (watsonx → Gemini → dummy) ───────────────────────────────────
 const { analyzeStockData, summarizeIPO, classifyNewsImpact, commentOnIndicator, healthCheck } = require('./services/watsonx');
@@ -549,6 +929,7 @@ app.get('/api/stock/price-history', async (req, res) => {
   if (!symbol) return res.json({ success: false, error: 'symbol param required', data: [] });
 
   const periodMap = {
+    '1w': { period1: new Date(Date.now() - 7  * 86400000), interval: '1d' },
     '1m': { period1: new Date(Date.now() - 30  * 86400000), interval: '1d' },
     '3m': { period1: new Date(Date.now() - 90  * 86400000), interval: '1d' },
     '6m': { period1: new Date(Date.now() - 180 * 86400000), interval: '1d' },
@@ -854,10 +1235,17 @@ app.get('/api/gs/sankey-data', async (req, res) => {
     const row = await gs.getCompanyGS(q);
     if (!row) return res.status(404).json({ success: false, error: `Ticker "${q}" not found in Google Sheet` });
 
-    // Helper: parse string numbers like "12,345" or "12345.00" → number
+    // Helper: parse string numbers like "12,345" or "275.86L" (lakh crore) → number in ₹ Cr
     const pn = (v) => {
       if (v == null || v === '') return null;
-      const n = parseFloat(v.toString().replace(/[,₹%\s]/g, ''));
+      const s = v.toString().trim();
+      // "275.86L" → 275.86 × 100,000 = 27,586,000 Cr
+      const lakhMatch = s.match(/^([\d,.]+)L$/i);
+      if (lakhMatch) {
+        const n = parseFloat(lakhMatch[1].replace(/,/g, ''));
+        return isNaN(n) ? null : Math.round(n * 100000);
+      }
+      const n = parseFloat(s.replace(/[,₹%\s]/g, ''));
       return isNaN(n) ? null : n;
     };
 
@@ -938,6 +1326,659 @@ app.get('/api/gs/sankey-data', async (req, res) => {
     });
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 9 — NSE Raw Data Explorer  (/api/nse-data)
+//
+//  GET /api/nse-data/sheets              → sheet index (41 sheets, hasAiHeader, mergeGroup)
+//  GET /api/nse-data/sheet?name=X        → single sheet, AI headers, metadata rows suppressed
+//  GET /api/nse-data/merged              → all merge groups: NSE_SYMBOL, ISIN, STANDALONE
+//  GET /api/nse-data/infer-headers?name=X → on-demand AI header inference
+//
+// Pipeline per sheet:
+//   1. Parse raw rows from XLSX
+//   2. Suppress metadata rows (disclaimers, titles, date descriptions)
+//   3. Detect/inject AI-inferred headers for headerless sheets (IBM Mistral → Gemini)
+//   4. Detect primary key column (SYMBOL / ISIN / none)
+//   5. Merge all sheets sharing the same primary key into unified wide tables
+// ─────────────────────────────────────────────────────────────────────────────
+(function () {
+  const https_   = require('https');
+  let _xlsxLib    = null;
+  const NSE_EXCEL = path.join(__dirname, 'data', 'Combined_Raw_Data.xlsx');
+
+  function getXlsx() {
+    if (!_xlsxLib) _xlsxLib = require('xlsx');
+    return _xlsxLib;
+  }
+
+  // ── Workbook cache ─────────────────────────────────────────────────────────
+  let _wb = null;
+  function loadWorkbook() {
+    if (_wb) return _wb;
+    const XLSX = getXlsx();
+    _wb = XLSX.readFile(NSE_EXCEL, { cellDates: true, raw: false });
+    return _wb;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 1 — METADATA ROW SUPPRESSION
+  // Programmatically detect and strip non-data rows from the top of each sheet.
+  // A row is metadata if:
+  //  (a) it spans fewer columns than the sheet width AND the first cell is a
+  //      long sentence (>40 chars) with no numeric tokens — disclaimer/title
+  //  (b) it matches a known NSE metadata pattern (date description, section label)
+  //  (c) the entire row is blank / whitespace
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Known leading-metadata sheets and how many rows to skip before the real header
+  // value = number of raw rows to drop from the top BEFORE finding the header row
+  const METADATA_SKIP = {
+    'CM_52_wk_High_low_25082026': 2,  // row0=disclaimer, row1=date — row2 is real header
+    'CM_Latency_stats24082026':   1,  // row0=date description — row1 is real header
+    'AUB_2026159_25082026':       2,  // row0=title sentence, row1=blank — row2 is real header
+    'PR_an25082026':              0,  // all rows are announcement text — standalone, no merge
+    'PR_bm25082026':              0,  // all rows are board meeting text — standalone, no merge
+    'PR_readme':                  0,  // entire sheet is narrative — standalone
+  };
+
+  /**
+   * Detect if a row is a metadata/non-data row using heuristics.
+   * Returns true if the row should be suppressed.
+   */
+  function isMetadataRow(row, colCount) {
+    if (!row || row.length === 0) return true;
+    const nonEmpty = row.filter(c => c != null && String(c).trim() !== '');
+    if (nonEmpty.length === 0) return true;
+
+    // If only 1 non-empty cell and it's a long sentence (>40 chars, no commas separating short tokens)
+    if (nonEmpty.length === 1) {
+      const val = String(nonEmpty[0]).trim();
+      if (val.length > 40 && !/^\d/.test(val)) return true;    // long non-numeric sentence
+      if (/disclaimer|effective for|capital market information|national stock exchange/i.test(val)) return true;
+    }
+
+    // Nifty-index section header rows in PR_gl (e.g. " ,Nifty 50 Sec., , , ")
+    const firstNonEmpty = String(nonEmpty[0]).trim();
+    if (/^nifty\s/i.test(firstNonEmpty) || firstNonEmpty === '') {
+      const hasNumeric = row.some(c => /^\d/.test(String(c || '').trim()));
+      if (!hasNumeric) return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * For sheets with known leading metadata, strip those rows before header detection.
+   * For all others, apply isMetadataRow dynamically on data rows after the header.
+   */
+  function suppressMetadataRows(raw, sheetName) {
+    let suppressed = 0;
+    let rows = raw.filter(r => r.some(c => c != null && String(c).trim() !== ''));
+
+    // Known fixed skips
+    if (METADATA_SKIP[sheetName] != null && METADATA_SKIP[sheetName] > 0) {
+      const skip = METADATA_SKIP[sheetName];
+      const dropped = rows.slice(0, skip);
+      rows = rows.slice(skip);
+      suppressed += dropped.length;
+      console.log(`[NSE-META] "${sheetName}": skipped ${suppressed} known metadata row(s): ${JSON.stringify(dropped[0]?.slice(0, 60))}`);
+    }
+
+    // Dynamic detection: check first row for metadata pattern (before it becomes header)
+    // Only for sheets NOT in METADATA_SKIP
+    if (METADATA_SKIP[sheetName] === undefined && rows.length > 1) {
+      let dynamicSuppressed = 0;
+      while (rows.length > 1 && isMetadataRow(rows[0], rows[0].length)) {
+        console.log(`[NSE-META] "${sheetName}": dynamic-suppressed row: ${JSON.stringify(rows[0].slice(0, 4))}`);
+        rows.shift();
+        dynamicSuppressed++;
+      }
+      suppressed += dynamicSuppressed;
+    }
+
+    return { rows, suppressed };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 2 — AI HEADER INFERENCE  (IBM watsonx Mistral → Gemini → Col_N)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const HEADERLESS = {
+    'APPSEC_COLLVAL_25082026': {
+      cols: 5,
+      desc: 'NSE Applicable Securities Collateral Value — serial_no, symbol, ISIN, price, haircut_percentage',
+      sampleFn: (raw) => raw.slice(0, 3).map(r => r.join(',')).join('\n'),
+    },
+    'CSQR_M2026159_25082026': {
+      cols: 5,
+      desc: 'NSE Closing Squared-off Report — symbol, series, market_type, auction_session_no, settlement_price',
+      sampleFn: (raw) => raw.slice(0, 3).map(r => r.join(',')).join('\n'),
+    },
+    'circuit_25082026': {
+      cols: 6,
+      desc: 'NSE circuit breaker stats — trade_date, next_trade_date, total_turnover_crores, total_trades, total_quantity, total_securities',
+      sampleFn: (raw) => raw.slice(0, 2).map(r => r.join(',')).join('\n'),
+    },
+  };
+  // NOTE: AUB, CM_Latency, PR_bm now handled by METADATA_SKIP (their real header is row after skip)
+
+  const _headerCache = {};
+
+  let _iamToken = null, _iamExpiry = 0;
+  async function getIAMToken() {
+    if (_iamToken && Date.now() < _iamExpiry) return _iamToken;
+    const key = process.env.WATSONX_API_KEY || '';
+    if (!key) throw new Error('WATSONX_API_KEY not set');
+    const body = Buffer.from(`grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${encodeURIComponent(key)}`);
+    return new Promise((resolve, reject) => {
+      const req = https_.request({ hostname: 'iam.cloud.ibm.com', path: '/identity/token', method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': body.length }},
+        (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => {
+          try {
+            const p = JSON.parse(d);
+            if (!p.access_token) return reject(new Error('IAM: ' + d.slice(0, 80)));
+            _iamToken = p.access_token;
+            _iamExpiry = Date.now() + (p.expires_in - 120) * 1000;
+            resolve(_iamToken);
+          } catch(e) { reject(e); }
+        }); });
+      req.on('error', reject);
+      req.setTimeout(15000, () => req.destroy(new Error('IAM timeout')));
+      req.write(body); req.end();
+    });
+  }
+
+  async function askWatsonx(prompt) {
+    const token  = await getIAMToken();
+    const proj   = process.env.WATSONX_PROJECT_ID || '83844219-1cce-4a4f-8631-52b707446c4c';
+    const region = process.env.WATSONX_REGION || 'us-south';
+    const body   = JSON.stringify({
+      model_id: 'mistralai/mistral-small-3-1-24b-instruct-2503',
+      input: `<s>[INST]${prompt}[/INST]`,
+      parameters: { max_new_tokens: 200, temperature: 0 },
+      project_id: proj,
+    });
+    return new Promise((resolve, reject) => {
+      const req = https_.request({ hostname: `${region}.ml.cloud.ibm.com`,
+        path: '/ml/v1/text/generation?version=2023-05-29', method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'Content-Length': Buffer.byteLength(body) }},
+        (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => {
+          const j = JSON.parse(d);
+          if (j.errors) return reject(new Error('watsonx: ' + j.errors[0].message));
+          const text = j.results?.[0]?.generated_text?.trim() || '';
+          if (!text) return reject(new Error('watsonx: empty response'));
+          resolve({ text, provider: 'watsonx', model: 'mistral-small-3-1-24b' });
+        }); });
+      req.on('error', reject);
+      req.setTimeout(30000, () => req.destroy(new Error('watsonx timeout')));
+      req.write(body); req.end();
+    });
+  }
+
+  async function askGemini(prompt) {
+    const key  = process.env.GEMINI_API_KEY || '';
+    if (!key) throw new Error('GEMINI_API_KEY not set');
+    const body = JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 300, temperature: 0 },
+    });
+    return new Promise((resolve, reject) => {
+      const req = https_.request({ hostname: 'generativelanguage.googleapis.com',
+        path: `/v1/models/gemini-2.5-flash:generateContent?key=${key}`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }},
+        (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => {
+          const j = JSON.parse(d);
+          if (j.error) return reject(new Error('Gemini: ' + j.error.message));
+          const text = j.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+          if (!text) return reject(new Error('Gemini: empty response'));
+          resolve({ text, provider: 'gemini', model: 'gemini-2.5-flash' });
+        }); });
+      req.on('error', reject);
+      req.setTimeout(30000, () => req.destroy(new Error('Gemini timeout')));
+      req.write(body); req.end();
+    });
+  }
+
+  async function inferHeaders(sheetName, dataRaw) {
+    if (_headerCache[sheetName]) return _headerCache[sheetName];
+    const meta   = HEADERLESS[sheetName];
+    const sample = meta.sampleFn ? meta.sampleFn(dataRaw) : dataRaw.slice(0, 3).map(r => r.join(',')).join('\n');
+    const prompt =
+      `You are an expert in NSE India market data file formats.\n` +
+      `File: "${sheetName}"\nContext: ${meta.desc}\n` +
+      `Sample rows (NO header row exists):\n${sample}\n\n` +
+      `Return ONLY a valid JSON array of exactly ${meta.cols} short snake_case column names.\n` +
+      `No explanation, no markdown. Example: ["col1","col2","col3"]`;
+    let result;
+    try {
+      result = await askWatsonx(prompt);
+      console.log(`[NSE-AI] ✅ watsonx/${result.model} → "${sheetName}"`);
+    } catch (e) {
+      console.warn(`[NSE-AI] watsonx failed: ${e.message} → Gemini`);
+      try {
+        result = await askGemini(prompt);
+        console.log(`[NSE-AI] ✅ gemini/${result.model} → "${sheetName}"`);
+      } catch (e2) {
+        console.warn(`[NSE-AI] Gemini failed: ${e2.message} — Col_N fallback`);
+        result = { text: JSON.stringify(Array.from({ length: meta.cols }, (_, i) => `Col_${i + 1}`)), provider: 'fallback', model: 'fallback' };
+      }
+    }
+    const match = result.text.match(/\[[\s\S]*?\]/);
+    let headers = null;
+    if (match) { try { headers = JSON.parse(match[0]); } catch {} }
+    if (!Array.isArray(headers) || headers.length === 0) headers = Array.from({ length: meta.cols }, (_, i) => `Col_${i + 1}`);
+    while (headers.length < meta.cols) headers.push(`Col_${headers.length + 1}`);
+    headers = headers.slice(0, meta.cols);
+    _headerCache[sheetName] = { headers, provider: result.provider, model: result.model || '' };
+    return _headerCache[sheetName];
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 3 — PRIMARY KEY DETECTION
+  // Identifies which column in a sheet is the joinable entity key.
+  // Priority: SYMBOL exact match → common NSE symbol patterns → ISIN → none
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Canonical column-name → key type mappings (case-insensitive)
+  const SYMBOL_COL_NAMES = new Set([
+    'symbol', 'nse code', 'nsecode', 'nse_code', 'tckrsymb', 'ticker',
+    'symbol name', 'scrip', 'security symbol', 'symbol_name',
+  ]);
+  const ISIN_COL_NAMES = new Set(['isin', 'isin_code', 'isin code']);
+
+  function detectPrimaryKey(columns) {
+    const lower = columns.map(c => c.toLowerCase().trim());
+    // Check for NSE symbol column
+    for (let i = 0; i < lower.length; i++) {
+      if (SYMBOL_COL_NAMES.has(lower[i])) return { keyType: 'NSE_SYMBOL', keyCol: columns[i], keyIdx: i };
+    }
+    // Check for ISIN column
+    for (let i = 0; i < lower.length; i++) {
+      if (ISIN_COL_NAMES.has(lower[i])) return { keyType: 'ISIN', keyCol: columns[i], keyIdx: i };
+    }
+    return { keyType: null, keyCol: null, keyIdx: -1 };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 4 — FULL SHEET PARSE PIPELINE
+  // Runs: suppress metadata → detect/inject headers → build rows object
+  // Returns: { columns, rows, aiHeaders, aiProvider, aiModel, primaryKey, suppressed }
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function parseSheet(ws, sheetName) {
+    const XLSX = getXlsx();
+    const rawAll = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: true });
+    if (!rawAll || rawAll.length === 0) {
+      return { columns: [], rows: [], aiHeaders: false, aiProvider: null, aiModel: null, primaryKey: null, suppressed: 0 };
+    }
+
+    // Step 1: suppress metadata
+    const { rows: cleanRaw, suppressed } = suppressMetadataRows(rawAll, sheetName);
+    if (cleanRaw.length === 0) {
+      return { columns: [], rows: [], aiHeaders: false, aiProvider: null, aiModel: null, primaryKey: null, suppressed };
+    }
+
+    let columns, dataRows, aiHeaders = false, aiProvider = null, aiModel = null;
+
+    if (HEADERLESS[sheetName]) {
+      // Step 2a: AI header inference — no header row exists
+      const inferred = await inferHeaders(sheetName, cleanRaw);
+      columns    = inferred.headers;
+      dataRows   = cleanRaw;
+      aiHeaders  = true;
+      aiProvider = inferred.provider;
+      aiModel    = inferred.model;
+    } else {
+      // Step 2b: Normal sheets — first row is already the header after metadata suppression
+      const headerRow = cleanRaw[0];
+      const rawCols = headerRow.map((h, i) => (h == null || String(h).trim() === '') ? `Col_${i + 1}` : String(h).trim());
+      // Deduplicate column names: if two columns share the same name (case-insensitive), suffix _2, _3 etc.
+      const seenColLower = {};
+      columns = rawCols.map(col => {
+        const key = col.toLowerCase();
+        if (!seenColLower[key]) { seenColLower[key] = 1; return col; }
+        seenColLower[key]++;
+        return `${col}_${seenColLower[key]}`;
+      });
+      dataRows = cleanRaw.slice(1).filter(r => r.some(c => c !== '' && c != null));
+
+      // Per-sheet data-row suppression: strip leading non-data rows after the header
+      // e.g. PR_gl has "Nifty 50 Sec." section divider rows, PR_pd/PR_pr have index rows
+      if (['PR_gl25082026', 'PR_pd25082026', 'PR_pr25082026'].includes(sheetName)) {
+        const before = dataRows.length;
+        dataRows = dataRows.filter(r => {
+          const first = String(r[0] || '').trim();
+          // Keep rows where at least one cell is a plausible equity symbol (uppercase 1-20 chars, no spaces)
+          // OR a numeric value — filters out section labels like "Nifty 50 Sec."
+          return r.some(c => /^[A-Z0-9&]{1,20}$/.test(String(c || '').trim()) && String(c).trim().length >= 2)
+              || r.some(c => /^\d/.test(String(c || '').trim()));
+        });
+        const after = dataRows.length;
+        if (before !== after) console.log(`[NSE-META] "${sheetName}": suppressed ${before - after} section-label rows`);
+      }
+    }
+
+    const rows = dataRows.map(r => {
+      const obj = {};
+      columns.forEach((col, i) => { obj[col] = r[i] == null ? '' : String(r[i]).trim(); });
+      return obj;
+    });
+
+    // Step 3: detect primary key
+    const primaryKey = detectPrimaryKey(columns);
+
+    return { columns, rows, aiHeaders, aiProvider, aiModel, primaryKey, suppressed };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 5 — MERGE PIPELINE
+  // Groups parsed sheets by primary key type and left-joins them into wide tables.
+  // Each merged table has: { keyType, keyCol, sourceSheets[], columns[], rows[], stats }
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Merge an array of { sheetName, columns, rows, primaryKey } objects
+   * into one wide table using a left-join on the shared key column.
+   * Columns from later sheets are prefixed with sheetName to avoid clashes.
+   */
+  function mergeSheetGroup(sheetDataList, keyType) {
+    if (sheetDataList.length === 0) return null;
+
+    // Normalise key values: uppercase, trimmed
+    const normaliseKey = (v) => String(v || '').trim().toUpperCase();
+
+    // Build a map from keyValue → merged row, starting with the first sheet
+    const [first, ...rest] = sheetDataList;
+    const keyCol = first.primaryKey.keyCol;
+
+    // Map: normalised key → merged row object
+    const merged = new Map();
+    for (const row of first.rows) {
+      const k = normaliseKey(row[keyCol]);
+      if (!k) continue;
+      merged.set(k, { ...row, _sources: [first.sheetName] });
+    }
+
+    // Track all columns in order
+    const allColumns = [...first.columns];
+    const usedCols   = new Set(first.columns.map(c => c.toLowerCase()));
+
+    for (const sheet of rest) {
+      const sKeyCol = sheet.primaryKey.keyCol;
+      // Prefix sheet columns that clash with already-seen column names
+      const colMap = {}; // original col → final col name in merged table
+      for (const col of sheet.columns) {
+        if (col.toLowerCase() === sKeyCol.toLowerCase()) {
+          colMap[col] = col; // key column never prefixed
+        } else {
+          const safe = usedCols.has(col.toLowerCase())
+            ? `${sheet.sheetName}__${col}` : col;
+          colMap[col] = safe;
+          if (!usedCols.has(safe.toLowerCase())) {
+            allColumns.push(safe);
+            usedCols.add(safe.toLowerCase());
+          }
+        }
+      }
+
+      // Left-join: augment existing rows; add new rows for keys not yet seen
+      for (const row of sheet.rows) {
+        const k = normaliseKey(row[sKeyCol]);
+        if (!k) continue;
+        if (merged.has(k)) {
+          const existing = merged.get(k);
+          for (const [orig, mapped] of Object.entries(colMap)) {
+            if (mapped !== sKeyCol && orig !== sKeyCol) {
+              if (existing[mapped] == null || existing[mapped] === '') {
+                existing[mapped] = row[orig] || '';
+              }
+            }
+          }
+          existing._sources.push(sheet.sheetName);
+        } else {
+          // Key not in first sheet — add as new row with this sheet's data
+          const newRow = { _sources: [sheet.sheetName] };
+          for (const [orig, mapped] of Object.entries(colMap)) {
+            newRow[mapped] = row[orig] || '';
+          }
+          merged.set(k, newRow);
+        }
+      }
+    }
+
+    const rows = [...merged.values()].map(r => {
+      const { _sources, ...rest2 } = r;
+      return rest2;
+    });
+
+    return {
+      keyType,
+      keyCol,
+      sourceSheets: sheetDataList.map(s => s.sheetName),
+      columns: allColumns,
+      rows,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MERGED RESULT CACHE
+  // ═══════════════════════════════════════════════════════════════════════════
+  let _mergedCache = null;
+
+  async function buildMergedTables() {
+    if (_mergedCache) return _mergedCache;
+
+    const wb = loadWorkbook();
+    const parsed = {}; // sheetName → parseSheet result
+    let totalSuppressed = 0;
+
+    // Parse all sheets sequentially (AI inference is async)
+    for (const name of wb.SheetNames) {
+      const ws = wb.Sheets[name];
+      try {
+        const result = await parseSheet(ws, name);
+        parsed[name] = { sheetName: name, ...result };
+        totalSuppressed += result.suppressed || 0;
+      } catch (e) {
+        console.warn(`[NSE-MERGE] Failed to parse "${name}": ${e.message}`);
+        parsed[name] = { sheetName: name, columns: [], rows: [], primaryKey: { keyType: null }, suppressed: 0 };
+      }
+    }
+
+    // Group by keyType
+    const byKey = { NSE_SYMBOL: [], ISIN: [], STANDALONE: [] };
+    for (const [name, d] of Object.entries(parsed)) {
+      const kt = d.primaryKey?.keyType;
+      if (kt === 'NSE_SYMBOL') byKey.NSE_SYMBOL.push(d);
+      else if (kt === 'ISIN')  byKey.ISIN.push(d);
+      else                     byKey.STANDALONE.push(d);
+    }
+
+    // Merge each group
+    const nseSymbolMerged = mergeSheetGroup(byKey.NSE_SYMBOL, 'NSE_SYMBOL');
+    const isinMerged      = mergeSheetGroup(byKey.ISIN, 'ISIN');
+
+    // Standalone: each sheet is its own "table"
+    const standalone = byKey.STANDALONE.map(d => ({
+      keyType:      'STANDALONE',
+      keyCol:       null,
+      sourceSheets: [d.sheetName],
+      columns:      d.columns,
+      rows:         d.rows,
+      aiHeaders:    d.aiHeaders,
+      aiProvider:   d.aiProvider,
+      aiModel:      d.aiModel,
+    }));
+
+    // Build console summary
+    const nseRows = nseSymbolMerged?.rows?.length || 0;
+    const nseShts = nseSymbolMerged?.sourceSheets?.length || 0;
+    const isinRows = isinMerged?.rows?.length || 0;
+    const isinShts = isinMerged?.sourceSheets?.length || 0;
+    console.log('\n' + '═'.repeat(70));
+    console.log('[NSE-MERGE] Merge pipeline complete:');
+    console.log(`  NSE_SYMBOL group : ${nseShts} source sheets merged → ${nseRows.toLocaleString()} rows`);
+    console.log(`  ISIN group       : ${isinShts} source sheets merged → ${isinRows.toLocaleString()} rows`);
+    console.log(`  STANDALONE group : ${standalone.length} individual sheets (no shared key)`);
+    console.log(`  Metadata rows suppressed across all sheets: ${totalSuppressed}`);
+    console.log('  NSE_SYMBOL source sheets: ' + (nseSymbolMerged?.sourceSheets || []).join(', '));
+    console.log('  ISIN source sheets: ' + (isinMerged?.sourceSheets || []).join(', '));
+    console.log('═'.repeat(70) + '\n');
+
+    _mergedCache = {
+      NSE_SYMBOL: nseSymbolMerged,
+      ISIN:       isinMerged,
+      STANDALONE: standalone,
+      totalSuppressed,
+      parsedSheets: parsed,
+    };
+    return _mergedCache;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // API ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // GET /api/nse-data/sheets — fast index (no AI, no parse)
+  app.get('/api/nse-data/sheets', (req, res) => {
+    try {
+      const wb   = loadWorkbook();
+      const XLSX = getXlsx();
+      const sheets = wb.SheetNames.map(name => {
+        const ws    = wb.Sheets[name];
+        const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : null;
+        // Determine merge group (static lookup — no parse needed here)
+        const mergeGroup = METADATA_SKIP[name] === 0 ? 'STANDALONE'
+          : Object.keys(HEADERLESS).includes(name) ? 'AI_HEADER'
+          : 'PENDING';
+        return {
+          name,
+          rowCount:    range ? range.e.r - range.s.r : 0,
+          colCount:    range ? range.e.c - range.s.c + 1 : 0,
+          hasAiHeader: !!HEADERLESS[name],
+          hasMetadataSkip: (METADATA_SKIP[name] || 0) > 0,
+        };
+      });
+      res.json({ success: true, count: sheets.length, sheets });
+    } catch (e) {
+      res.json({ success: false, error: e.message });
+    }
+  });
+
+  // GET /api/nse-data/sheet?name=X — single parsed sheet
+  app.get('/api/nse-data/sheet', async (req, res) => {
+    try {
+      const sheetName = (req.query.name || '').trim();
+      if (!sheetName) return res.status(400).json({ success: false, error: 'name param required' });
+      const wb = loadWorkbook();
+      const ws = wb.Sheets[sheetName];
+      if (!ws) return res.status(404).json({ success: false, error: `Sheet "${sheetName}" not found` });
+      const result = await parseSheet(ws, sheetName);
+      res.json({
+        success: true, name: sheetName,
+        columnCount: result.columns.length, rowCount: result.rows.length,
+        columns: result.columns, rows: result.rows,
+        aiHeaders: result.aiHeaders, aiProvider: result.aiProvider || null, aiModel: result.aiModel || null,
+        primaryKey: result.primaryKey, suppressed: result.suppressed,
+      });
+    } catch (e) {
+      res.json({ success: false, error: e.message });
+    }
+  });
+
+  // GET /api/nse-data/merged — all merge groups
+  // Query params:
+  //   group=NSE_SYMBOL|ISIN|STANDALONE (default: return all groups as summary)
+  //   sheet=<name>  (for STANDALONE group, return that standalone sheet's data)
+  app.get('/api/nse-data/merged', async (req, res) => {
+    try {
+      const mc = await buildMergedTables();
+      const group = (req.query.group || '').toUpperCase();
+      const standaloneSheet = (req.query.sheet || '').trim();
+
+      if (group === 'NSE_SYMBOL') {
+        const g = mc.NSE_SYMBOL;
+        if (!g) return res.json({ success: true, group: 'NSE_SYMBOL', rows: [], columns: [], sourceSheets: [] });
+        return res.json({ success: true, group: 'NSE_SYMBOL', keyCol: g.keyCol,
+          sourceSheets: g.sourceSheets, columnCount: g.columns.length, rowCount: g.rows.length,
+          columns: g.columns, rows: g.rows });
+      }
+
+      if (group === 'ISIN') {
+        const g = mc.ISIN;
+        if (!g) return res.json({ success: true, group: 'ISIN', rows: [], columns: [], sourceSheets: [] });
+        return res.json({ success: true, group: 'ISIN', keyCol: g.keyCol,
+          sourceSheets: g.sourceSheets, columnCount: g.columns.length, rowCount: g.rows.length,
+          columns: g.columns, rows: g.rows });
+      }
+
+      if (group === 'STANDALONE') {
+        if (standaloneSheet) {
+          const found = mc.STANDALONE.find(s => s.sourceSheets[0] === standaloneSheet);
+          if (!found) return res.status(404).json({ success: false, error: `Standalone sheet "${standaloneSheet}" not found` });
+          return res.json({ success: true, group: 'STANDALONE', sourceSheets: found.sourceSheets,
+            keyCol: null, columnCount: found.columns.length, rowCount: found.rows.length,
+            columns: found.columns, rows: found.rows,
+            aiHeaders: found.aiHeaders, aiProvider: found.aiProvider || null, aiModel: found.aiModel || null });
+        }
+        // Return index of all standalone sheets
+        return res.json({ success: true, group: 'STANDALONE',
+          sheets: mc.STANDALONE.map(s => ({ name: s.sourceSheets[0], rowCount: s.rows.length, colCount: s.columns.length, aiHeaders: s.aiHeaders || false })) });
+      }
+
+      // Default: return summary of all groups
+      res.json({
+        success: true,
+        totalSuppressed: mc.totalSuppressed,
+        groups: {
+          NSE_SYMBOL: {
+            keyCol:       mc.NSE_SYMBOL?.keyCol || null,
+            sourceSheets: mc.NSE_SYMBOL?.sourceSheets || [],
+            rowCount:     mc.NSE_SYMBOL?.rows?.length || 0,
+            columnCount:  mc.NSE_SYMBOL?.columns?.length || 0,
+          },
+          ISIN: {
+            keyCol:       mc.ISIN?.keyCol || null,
+            sourceSheets: mc.ISIN?.sourceSheets || [],
+            rowCount:     mc.ISIN?.rows?.length || 0,
+            columnCount:  mc.ISIN?.columns?.length || 0,
+          },
+          STANDALONE: {
+            sheetCount: mc.STANDALONE?.length || 0,
+            sheets: mc.STANDALONE?.map(s => ({ name: s.sourceSheets[0], rowCount: s.rows.length })) || [],
+          },
+        },
+      });
+    } catch (e) {
+      console.error('[NSE-MERGE] /api/nse-data/merged error:', e.message);
+      res.json({ success: false, error: e.message });
+    }
+  });
+
+  // GET /api/nse-data/infer-headers?name=X — on-demand (preserved for compatibility)
+  app.get('/api/nse-data/infer-headers', async (req, res) => {
+    try {
+      const sheetName = (req.query.name || '').trim();
+      if (!sheetName) return res.status(400).json({ success: false, error: 'name param required' });
+      if (!HEADERLESS[sheetName]) return res.json({ success: true, aiHeaders: false, message: 'Sheet already has headers' });
+      const wb = loadWorkbook();
+      const ws = wb.Sheets[sheetName];
+      if (!ws) return res.status(404).json({ success: false, error: `Sheet "${sheetName}" not found` });
+      const XLSX = getXlsx();
+      const raw  = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
+        .filter(r => r.some(c => c !== '' && c != null));
+      if (req.query.refresh === '1') delete _headerCache[sheetName];
+      const inferred = await inferHeaders(sheetName, raw);
+      res.json({ success: true, name: sheetName, aiHeaders: true,
+        headers: inferred.headers, provider: inferred.provider, model: inferred.model });
+    } catch (e) {
+      res.json({ success: false, error: e.message });
+    }
+  });
+
+  console.log('[NSE] Section 9 loaded — pipeline: metadata-suppress → AI-headers → PK-detect → merge');
+})();
 
 // ─────────────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {

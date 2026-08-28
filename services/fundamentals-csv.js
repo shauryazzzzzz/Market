@@ -44,6 +44,7 @@ const path = require('path');
 // ── Resolve correct CSV path (supports both filenames for backward compat) ─────
 const POSSIBLE_PATHS = [
   path.join(__dirname, '..', 'data', 'screener.csv'),
+  path.join(__dirname, '..', 'data', 'Raw data', 'screener.csv'),
   path.join(__dirname, '..', 'data', 'screener 16 Aug.csv'),
 ];
 const CSV_PATH = POSSIBLE_PATHS.find(p => fs.existsSync(p)) || POSSIBLE_PATHS[0];
@@ -368,7 +369,7 @@ function topByMetric(metric, n = 20, minMarketCap = 500) {
 /** Earnings surprise report */
 function earningsSurpriseReport() {
   return getAllCompanies()
-    .filter(c => c.yoyQProfitGrowth !== null)
+    .filter(c => c.yoyQProfitGrowth !== null && c.nseCode && c.name)
     .map(c => {
       const g = gradeCompany(c);
       return {

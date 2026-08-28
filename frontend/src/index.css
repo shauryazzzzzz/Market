@@ -22,42 +22,93 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 14px; }
+html, body { height: 100%; font-size: 14px; }
 body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
-  min-height: 100vh;
 }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; border: none; background: none; }
 input, select { font: inherit; }
 
-/* Layout */
-.app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+/* ── Layout shell ──────────────────────────────────────────────────────────── */
+/* app-shell fills the full viewport and stacks: topbar / ticker / body        */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .topbar {
   position: sticky; top: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px; height: 52px;
+  padding: 0 24px; height: 56px;
   background: rgba(13,17,23,0.95);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(12px);
+  flex-shrink: 0;
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-icon { font-size: 20px; }
-.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.3px; }
+.brand-icon { font-size: 22px; }
+.brand-name { font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
 .brand-sub  { font-size: 11px; color: var(--muted); }
-.topnav { display: flex; gap: 4px; }
-.topnav a {
-  padding: 6px 12px; border-radius: var(--radius);
-  font-size: 13px; color: var(--muted);
-  transition: color .15s, background .15s;
-}
-.topnav a:hover, .topnav a.active {
-  color: var(--text); background: var(--surface);
-}
 .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* ── App body: sidebar + scrollable main ───────────────────────────────────── */
+.app-body {
+  display: flex;
+  flex: 1;
+  /* no overflow:hidden — let main-content scroll naturally */
+}
+
+/* ── Side navigation ───────────────────────────────────────────────────────── */
+.sidenav {
+  width: 200px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 56px;                          /* stick below the topbar */
+  align-self: flex-start;             /* don't stretch to match main height */
+  max-height: calc(100vh - 56px);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 12px 0;
+}
+.sidenav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+}
+.sidenav-links a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--muted);
+  transition: color .15s, background .15s;
+  white-space: nowrap;
+}
+.sidenav-links a:hover,
+.sidenav-links a.active {
+  color: var(--text);
+  background: var(--surface);
+}
+.sidenav-links a.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ── Main content ──────────────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  min-width: 0;
+  /* scrolls naturally with the page — no fixed height needed */
+}
 .pill {
   padding: 4px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 600; letter-spacing: .4px;

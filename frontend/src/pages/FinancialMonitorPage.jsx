@@ -1,15 +1,26 @@
 /**
- * FinancialMonitorPage.jsx
- * Embedded integration of the Financial Monitor (NSE 500 DB) into the Aladdin platform.
- * Calls the financial-monitor Express server on port 5000 via /fm-api proxy.
+ * FinancialMonitorPage.jsx — Financial Monitor
+ * Route: /monitor
+ * Uses the main tradingview-economy API (port 3001) for all data.
+ * No dependency on the external Financial Monitor server (port 5000).
+ * Tabs: NSE Stocks | Sectoral | Global Markets | Shockers | AI Sentiment
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Loading, ErrorBox, fmtPct, fmtCr } from '../components/shared'
-import DummyDataBanner from '../components/DummyDataBanner'
+import { Loading, ErrorBox, fmtCr, RangePicker, RangeChg, useHistoricalChanges } from '../components/shared'
 
-// ── API helpers ───────────────────────────────────────────────────────────────
-const fm = (path) => axios.get(`/fm-api${path}`).then(r => r.data)
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function pct(v, digits = 1) {
+  if (v == null) return '—'
+  const n = parseFloat(v)
+  if (isNaN(n)) return '—'
+  return <span className={n >= 0 ? 'metric-pos' : 'metric-neg'}>{n >= 0 ? '▲' : '▼'} {Math.abs(n).toFixed(digits)}%</span>
+}
+function money(v, sym = '₹') {
+  if (v == null) return '—'
+  const n = parseFloat(v)
+  return isNaN(n) ? '—' : `${sym}${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+}
 
 // ── Sector pill ───────────────────────────────────────────────────────────────
 function SectorBadge({ sector }) {
@@ -17,68 +28,61 @@ function SectorBadge({ sector }) {
     <span style={{
       fontSize: 10, padding: '2px 7px', borderRadius: 3,
       background: 'rgba(47,129,247,.12)', color: 'var(--primary)',
-      fontWeight: 600, letterSpacing: '.4px', textTransform: 'uppercase'
+      fontWeight: 600, letterSpacing: '.4px', textTransform: 'uppercase',
     }}>{sector || '—'}</span>
   )
 }
 
-// ── Stock row ─────────────────────────────────────────────────────────────────
-function StockRow({ s }) {
-  const chg = parseFloat(s.return_1y) || 0
+// ── NSE stock table row ───────────────────────────────────────────────────────
+function StockRow({ s, range, rangePct, rangeLoading }) {
   return (
     <tr style={{ borderBottom: '1px solid var(--border)', fontSize: 12 }}>
-      <td style={{ padding: '8px 6px', fontWeight: 700 }}>{s.ticker}</td>
-      <td style={{ padding: '8px 6px', color: 'var(--text)' }}>{s.company_name?.slice(0, 22)}</td>
-      <td style={{ padding: '8px 6px' }}><SectorBadge sector={s.sector} /></td>
-      <td style={{ padding: '8px 6px', textAlign: 'right' }}>
-        {s.current_price ? `₹${parseFloat(s.current_price).toLocaleString()}` : '—'}
+      <td style={{ padding: '7px 8px', fontWeight: 700, color: 'var(--primary)' }}>{s.symbol}</td>
+      <td style={{ padding: '7px 8px' }}>{(s.name || '').slice(0, 24)}</td>
+      <td style={{ padding: '7px 8px' }}><SectorBadge sector={s.sector} /></td>
+      <td style={{ padding: '7px 8px', textAlign: 'right', fontWeight: 600 }}>
+        {s.price ? money(s.price) : '—'}
       </td>
-      <td style={{ padding: '8px 6px', textAlign: 'right' }}>
-        {s.pe_ratio ? parseFloat(s.pe_ratio).toFixed(1) : '—'}
+      <td style={{ padding: '7px 8px', textAlign: 'right' }}>
+        <RangeChg dailyPct={s.change} rangePct={rangePct} range={range || '1D'} loading={rangeLoading} />
       </td>
-      <td style={{ padding: '8px 6px', textAlign: 'right' }}>
-        {s.roe ? <span className={parseFloat(s.roe) > 15 ? 'metric-pos' : 'metric-neu'}>{parseFloat(s.roe).toFixed(1)}%</span> : '—'}
+      <td style={{ padding: '7px 8px', textAlign: 'right' }}>
+        {s.pe != null ? parseFloat(s.pe).toFixed(1) : '—'}
       </td>
-      <td style={{ padding: '8px 6px', textAlign: 'right' }}>
-        {s.return_1y != null ? <span className={chg >= 0 ? 'metric-pos' : 'metric-neg'}>{chg >= 0 ? '▲' : '▼'} {Math.abs(chg).toFixed(1)}%</span> : '—'}
+      <td style={{ padding: '7px 8px', textAlign: 'right' }}>
+        {s.mktcap ? fmtCr(s.mktcap) : '—'}
       </td>
     </tr>
   )
 }
 
-// ── Global market card ────────────────────────────────────────────────────────
-function GlobalCard({ item }) {
-  const chg = parseFloat(item.change) || 0
+// ── Index card ────────────────────────────────────────────────────────────────
+function IndexCard({ item, range, rangePct, rangeLoading }) {
   return (
     <div className="card" style={{ textAlign: 'center', padding: '14px 10px' }}>
-      <div className="card-label" style={{ fontSize: 11 }}>{item.name}</div>
-      <div style={{ fontSize: 20, fontWeight: 800, margin: '6px 0' }}>
-        {typeof item.value === 'number' ? item.value.toLocaleString() : item.value}
+      <div className="card-label" style={{ fontSize: 11, marginBottom: 4 }}>{item.name}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, margin: '4px 0' }}>
+        {item.price != null ? item.price.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '—'}
       </div>
-      <div className={chg >= 0 ? 'metric-pos' : 'metric-neg'} style={{ fontSize: 12, fontWeight: 600 }}>
-        {chg >= 0 ? '▲' : '▼'} {Math.abs(chg).toFixed(2)}%
+      <div style={{ fontSize: 12, fontWeight: 600 }}>
+        <RangeChg dailyPct={item.changePct} rangePct={rangePct} range={range || '1D'} loading={rangeLoading} />
       </div>
     </div>
   )
 }
 
-// ── Shocker table ─────────────────────────────────────────────────────────────
-function ShockerTable({ title, rows, valueKey, valueLabel, tone }) {
-  if (!rows?.length) return <div className="loading" style={{ padding: 12 }}>No data</div>
+// ── Shocker row ───────────────────────────────────────────────────────────────
+function ShockerRow({ stock, metric, label, tone }) {
+  const val = parseFloat(stock[metric]) || 0
   return (
-    <div>
-      <div style={{ fontSize: 11, color: tone === 'pos' ? 'var(--positive)' : 'var(--negative)', fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.5px' }}>{title}</div>
-      {rows.map((r, i) => (
-        <div className="stat-row" key={i}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 12 }}>{r.ticker}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.sector}</div>
-          </div>
-          <span className={tone === 'pos' ? 'metric-pos' : 'metric-neg'} style={{ fontSize: 12, fontWeight: 700 }}>
-            {parseFloat(r[valueKey] || 0).toFixed(1)}%
-          </span>
-        </div>
-      ))}
+    <div className="stat-row">
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 12 }}>{stock.symbol}</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{(stock.name || '').slice(0, 20)}</div>
+      </div>
+      <span className={tone === 'pos' ? 'metric-pos' : 'metric-neg'} style={{ fontSize: 13, fontWeight: 700 }}>
+        {val >= 0 ? '+' : ''}{val.toFixed(1)}%
+      </span>
     </div>
   )
 }
@@ -86,16 +90,14 @@ function ShockerTable({ title, rows, valueKey, valueLabel, tone }) {
 // ── AI Sentiment panel ────────────────────────────────────────────────────────
 function AISentimentPanel() {
   const [headlines, setHeadlines] = useState('')
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [result,    setResult]    = useState(null)
+  const [loading,   setLoading]   = useState(false)
 
   const run = async () => {
     if (!headlines.trim()) return
     setLoading(true)
     try {
-      const r = await axios.post('/fm-api/ai/market-sentiment', {
-        headlines: headlines.split('\n').filter(Boolean)
-      })
+      const r = await axios.post('/api/ai/classify-news', { headline: headlines.split('\n')[0] || headlines })
       setResult(r.data)
     } catch (e) {
       setResult({ success: false, error: e.message })
@@ -110,8 +112,9 @@ function AISentimentPanel() {
       </div>
       <textarea
         rows={4}
-        style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 12, color: 'var(--text)', resize: 'vertical', marginBottom: 8, boxSizing: 'border-box' }}
-        placeholder="Paste headlines (one per line)…"
+        style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6,
+          padding: '8px 10px', fontSize: 12, color: 'var(--text)', resize: 'vertical', marginBottom: 8, boxSizing: 'border-box' }}
+        placeholder="Paste a market headline to classify…"
         value={headlines}
         onChange={e => setHeadlines(e.target.value)}
       />
@@ -120,7 +123,7 @@ function AISentimentPanel() {
       </button>
       {result && (
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(47,129,247,.07)', borderRadius: 6, fontSize: 13 }}>
-          <strong>Sentiment:</strong> {result.text || result.sentiment || '—'}<br />
+          <strong>Category:</strong> {result.category || '—'}<br />
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>Provider: {result.provider || '—'}</span>
         </div>
       )}
@@ -130,79 +133,81 @@ function AISentimentPanel() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function FinancialMonitorPage() {
-  const [stocks, setStocks]       = useState([])
-  const [globalMkts, setGlobal]   = useState(null)
-  const [sectoral, setSectoral]   = useState([])
-  const [shockers, setShockers]   = useState({ near52High: [], momentum: [], volume: [] })
-  const [sectors, setSectors]     = useState([])
-  const [search, setSearch]       = useState('')
-  const [sectorFilter, setSectorFilter] = useState('')
-  const [sortBy, setSortBy]       = useState('nse_rank')
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState(null)
-  const [tab, setTab]             = useState('stocks') // stocks | markets | shockers | ai
+  const [stocks,    setStocks]    = useState([])
+  const [indices,   setIndices]   = useState([])
+  const [global,    setGlobal]    = useState([])
+  const [commodities, setCommodities] = useState([])
+  const [search,    setSearch]    = useState('')
+  const [tab,       setTab]       = useState('stocks')
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState(null)
+  const [range,     setRange]     = useState('1D')
 
   useEffect(() => {
     Promise.allSettled([
-      fm('/stocks?limit=50&sortBy=nse_rank'),
-      fm('/markets/global'),
-      fm('/markets/sectoral-indices'),
-      fm('/stocks/sectors/list'),
-      fm('/markets/shockers/near-52w-high?limit=8'),
-      fm('/markets/shockers/momentum?limit=8'),
-      fm('/markets/shockers/volume?limit=8'),
-    ]).then(([s, g, sec, slist, h, m, v]) => {
-      if (s.status === 'fulfilled')   setStocks(s.value.data || [])
-      else setError('Financial Monitor server not running on :5000')
-      if (g.status === 'fulfilled')   setGlobal(g.value.data)
-      if (sec.status === 'fulfilled') setSectoral(sec.value.data || [])
-      if (slist.status === 'fulfilled') setSectors(slist.value.data || [])
-      if (h.status === 'fulfilled')   setShockers(p => ({ ...p, near52High: h.value.data || [] }))
-      if (m.status === 'fulfilled')   setShockers(p => ({ ...p, momentum: m.value.data || [] }))
-      if (v.status === 'fulfilled')   setShockers(p => ({ ...p, volume: v.value.data || [] }))
+      axios.get('/api/quotes/india',       { timeout: 20000 }),
+      axios.get('/api/quotes/indices',     { timeout: 20000 }),
+      axios.get('/api/quotes/global',      { timeout: 20000 }),
+      axios.get('/api/quotes/commodities', { timeout: 20000 }),
+    ]).then(([stocksRes, indRes, globalRes, commRes]) => {
+      if (stocksRes.status === 'fulfilled') {
+        setStocks(stocksRes.value.data?.stocks || [])
+      } else {
+        setError('Could not load stock data from Yahoo Finance')
+      }
+      if (indRes.status    === 'fulfilled') setIndices(indRes.value.data?.indices || [])
+      if (globalRes.status === 'fulfilled') setGlobal(globalRes.value.data?.indices || [])
+      if (commRes.status   === 'fulfilled') setCommodities(commRes.value.data?.commodities || [])
       setLoading(false)
     })
   }, [])
 
-  // Live search
-  useEffect(() => {
-    if (search.length < 2) return
-    const t = setTimeout(() => {
-      fm(`/stocks/search?q=${encodeURIComponent(search)}&limit=30`)
-        .then(r => setStocks(r.data || []))
-        .catch(() => {})
-    }, 300)
-    return () => clearTimeout(t)
-  }, [search])
+  // Search filter on NSE stocks
+  const filteredStocks = search.trim().length < 2
+    ? stocks
+    : stocks.filter(s =>
+        s.symbol?.toLowerCase().includes(search.toLowerCase()) ||
+        s.name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.sector?.toLowerCase().includes(search.toLowerCase())
+      )
 
-  // Sector filter
-  useEffect(() => {
-    if (!sectorFilter) return
-    fm(`/stocks/sector/${encodeURIComponent(sectorFilter)}`)
-      .then(r => setStocks(r.data || []))
-      .catch(() => {})
-  }, [sectorFilter])
+  // Symbols for historical range fetches
+  const stockSymbols = useMemo(() => filteredStocks.map(s => s.symbol), [filteredStocks.map(s=>s.symbol).join(',')]) // eslint-disable-line
+  const idxSymbols   = useMemo(() => [...indices, ...global].map(i => i.symbol), [[...indices,...global].map(i=>i.symbol).join(',')]) // eslint-disable-line
+  const commSymbols  = useMemo(() => commodities.map(c => c.symbol), [commodities.map(c=>c.symbol).join(',')]) // eslint-disable-line
+
+  const activeStockSymbols = tab === 'stocks'      ? stockSymbols : []
+  const activeIdxSymbols   = tab === 'markets'     ? idxSymbols   : []
+  const activeCommSymbols  = tab === 'commodities' ? commSymbols  : []
+
+  const { changes: stockChg, loading: stockL } = useHistoricalChanges(activeStockSymbols, range)
+  const { changes: idxChg,   loading: idxL   } = useHistoricalChanges(activeIdxSymbols,   range)
+  const { changes: commChg,  loading: commL  } = useHistoricalChanges(activeCommSymbols,  range)
+
+  // Compute shockers from loaded stocks
+  const topGainers  = [...stocks].filter(s => s.change != null).sort((a, b) => b.change - a.change).slice(0, 8)
+  const topLosers   = [...stocks].filter(s => s.change != null).sort((a, b) => a.change - b.change).slice(0, 8)
+  const topMktCap   = [...stocks].filter(s => s.mktcap  != null).sort((a, b) => b.mktcap - a.mktcap).slice(0, 8)
 
   const TABS = [
-    { id: 'stocks',   label: '📋 NSE 500 Stocks' },
-    { id: 'markets',  label: '🌍 Global Markets' },
-    { id: 'shockers', label: '⚡ Stock Shockers' },
-    { id: 'ai',       label: '🤖 AI Sentiment' },
+    { id: 'stocks',   label: '📋 NSE Stocks'      },
+    { id: 'markets',  label: '🌍 Indices'          },
+    { id: 'commodities', label: '🏗 Commodities'  },
+    { id: 'shockers', label: '⚡ Shockers'         },
+    { id: 'ai',       label: '🤖 AI Sentiment'     },
   ]
 
   return (
     <div className="page">
-      <DummyDataBanner show={!!error && stocks.length === 0} />
-      <div style={{ marginBottom: 20 }}>
-        <div className="page-title">Financial Monitor</div>
-        <div className="page-sub">NSE 500 stock database · Global markets · AI-powered stock analysis · WatsonX sentiment</div>
-      </div>
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'rgba(248,81,73,.1)', border: '1px solid rgba(248,81,73,.3)', borderRadius: 6, color: '#f85149', fontSize: 13, marginBottom: 16 }}>
-          ⚠️ {error} — Start it with: <code style={{ fontSize: 11 }}>cd financial-monitor && npm start</code>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <div className="page-title">Financial Monitor</div>
+          <div className="page-sub">
+            NSE stocks · Sectoral indices · Global markets · Live from Yahoo Finance
+          </div>
         </div>
-      )}
+        <RangePicker selected={range} onChange={setRange} />
+      </div>
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -214,43 +219,40 @@ export default function FinancialMonitorPage() {
       </div>
 
       {loading && <Loading />}
+      {error && !loading && <ErrorBox msg={error} />}
 
       {/* ── Stocks tab ── */}
       {!loading && tab === 'stocks' && (
         <div className="card">
           <div className="card-header">
-            <div><div className="card-label">NSE 500 Database</div><div className="card-title">Stock Screener</div></div>
+            <div><div className="card-label">India Equities</div><div className="card-title">NSE Stocks — Live Prices</div></div>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>{filteredStocks.length} stocks</span>
           </div>
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+          <div style={{ marginBottom: 12 }}>
             <input
-              style={{ flex: 1, minWidth: 180, padding: '7px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text)' }}
-              placeholder="Search by ticker or name…"
+              className="input"
+              style={{ width: 280, fontSize: 12 }}
+              placeholder="🔍 Search symbol, name or sector…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
-            <select
-              style={{ padding: '7px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text)' }}
-              value={sectorFilter}
-              onChange={e => { setSectorFilter(e.target.value); setSearch('') }}
-            >
-              <option value="">All Sectors</option>
-              {sectors.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                  {['Ticker', 'Company', 'Sector', 'Price', 'PE', 'ROE', '1Y Rtn'].map(h => (
-                    <th key={h} style={{ padding: '8px 6px', textAlign: h === 'Ticker' || h === 'Company' || h === 'Sector' ? 'left' : 'right', fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px' }}>{h}</th>
+                  {['Symbol', 'Company', 'Sector', 'Price', `Chg (${range})`, 'P/E', 'Mkt Cap'].map(h => (
+                    <th key={h} style={{
+                      padding: '8px 8px', textAlign: ['Price', `Chg (${range})`, 'P/E', 'Mkt Cap'].includes(h) ? 'right' : 'left',
+                      fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px',
+                    }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {stocks.length === 0
-                  ? <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>No stocks found — is the Financial Monitor server running on :5000?</td></tr>
-                  : stocks.map((s, i) => <StockRow key={i} s={s} />)
+                {filteredStocks.length === 0
+                  ? <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>No results</td></tr>
+                  : filteredStocks.map((s, i) => <StockRow key={i} s={s} range={range} rangePct={stockChg[s.symbol]} rangeLoading={stockL} />)
                 }
               </tbody>
             </table>
@@ -258,63 +260,115 @@ export default function FinancialMonitorPage() {
         </div>
       )}
 
-      {/* ── Global Markets tab ── */}
-      {!loading && tab === 'markets' && globalMkts && (
+      {/* ── Indices tab ── */}
+      {!loading && tab === 'markets' && (
         <>
-          <div className="grid-4" style={{ marginBottom: 18 }}>
-            {Object.values(globalMkts).map((item, i) => <GlobalCard key={i} item={item} />)}
-          </div>
-          {sectoral.length > 0 && (
-            <div className="card">
-              <div className="card-header">
-                <div><div className="card-label">Sectoral Performance</div><div className="card-title">NSE Sector Returns</div></div>
+          {indices.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div className="card-label" style={{ marginBottom: 10, fontSize: 12 }}>NSE/BSE INDICES</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+                {indices.map(idx => <IndexCard key={idx.symbol} item={idx} range={range} rangePct={idxChg[idx.symbol]} rangeLoading={idxL} />)}
               </div>
+            </div>
+          )}
+          {global.length > 0 && (
+            <div>
+              <div className="card-label" style={{ marginBottom: 10, fontSize: 12 }}>GLOBAL INDICES</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+                {global.map(idx => <IndexCard key={idx.symbol} item={idx} range={range} rangePct={idxChg[idx.symbol]} rangeLoading={idxL} />)}
+              </div>
+            </div>
+          )}
+          {indices.length === 0 && global.length === 0 && (
+            <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
+              No index data available — server may need a restart to load new routes.
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Commodities tab ── */}
+      {!loading && tab === 'commodities' && (
+        <div className="card">
+          <div className="card-header">
+            <div><div className="card-label">Commodities</div><div className="card-title">Live Commodity Prices</div></div>
+          </div>
+          {commodities.length === 0
+            ? <div style={{ padding: 24, color: 'var(--muted)', textAlign: 'center' }}>No commodity data</div>
+            : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                      {['Sector', 'Stocks', 'Avg Return', 'Avg PE', 'Avg ROE', 'Mkt Cap (Cr)'].map(h => (
-                        <th key={h} style={{ padding: '8px 6px', textAlign: h === 'Sector' ? 'left' : 'right', fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{h}</th>
-                      ))}
+                      {['Commodity', 'Price', `Chg (${range})`, 'Day High', 'Day Low', '52W High', '52W Low'].map(h => (
+                          <th key={h} style={{
+                            padding: '8px 8px', textAlign: h === 'Commodity' ? 'left' : 'right',
+                            fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px',
+                          }}>{h}</th>
+                        ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {sectoral.map((s, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 6px', fontWeight: 600 }}>{s.sector}</td>
-                        <td style={{ padding: '8px 6px', textAlign: 'right' }}>{s.stock_count}</td>
-                        <td style={{ padding: '8px 6px', textAlign: 'right' }}>
-                          <span className={parseFloat(s.avg_return) >= 0 ? 'metric-pos' : 'metric-neg'}>
-                            {parseFloat(s.avg_return || 0).toFixed(1)}%
-                          </span>
+                    {commodities.map(c => (
+                      <tr key={c.symbol} style={{ borderBottom: '1px solid var(--border)', fontSize: 12 }}>
+                        <td style={{ padding: '7px 8px' }}>
+                          <div style={{ fontWeight: 600 }}>{c.name}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{c.symbol}</div>
                         </td>
-                        <td style={{ padding: '8px 6px', textAlign: 'right' }}>{parseFloat(s.avg_pe || 0).toFixed(1)}</td>
-                        <td style={{ padding: '8px 6px', textAlign: 'right' }}>{parseFloat(s.avg_roe || 0).toFixed(1)}%</td>
-                        <td style={{ padding: '8px 6px', textAlign: 'right' }}>{fmtCr(s.total_market_cap)}</td>
+                        <td style={{ padding: '7px 8px', textAlign: 'right', fontWeight: 700 }}>
+                          {c.price != null ? `${c.currencySymbol}${Number(c.price).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—'}
+                        </td>
+                        <td style={{ padding: '7px 8px', textAlign: 'right' }}>
+                          <RangeChg dailyPct={c.changePct} rangePct={commChg[c.symbol]} range={range} loading={commL} />
+                        </td>
+                        <td style={{ padding: '7px 8px', textAlign: 'right' }}>{c.dayHigh != null ? `${c.currencySymbol}${Number(c.dayHigh).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—'}</td>
+                        <td style={{ padding: '7px 8px', textAlign: 'right' }}>{c.dayLow  != null ? `${c.currencySymbol}${Number(c.dayLow).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—'}</td>
+                        <td style={{ padding: '7px 8px', textAlign: 'right' }}>{c.week52High != null ? `${c.currencySymbol}${Number(c.week52High).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—'}</td>
+                        <td style={{ padding: '7px 8px', textAlign: 'right' }}>{c.week52Low  != null ? `${c.currencySymbol}${Number(c.week52Low).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-        </>
+            )
+          }
+        </div>
       )}
 
       {/* ── Shockers tab ── */}
       {!loading && tab === 'shockers' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
           <div className="card">
-            <div className="card-header"><div><div className="card-label">Near 52W High</div><div className="card-title">Breakout Watch</div></div></div>
-            <ShockerTable title="Near 52-Week High" rows={shockers.near52High} valueKey="high_52w_potential" valueLabel="Upside %" tone="pos" />
+            <div className="card-header">
+              <div><div className="card-label">Top Gainers</div><div className="card-title">Best Day Returns</div></div>
+            </div>
+            {topGainers.length === 0
+              ? <div style={{ color: 'var(--muted)', fontSize: 12, padding: '10px 0' }}>No data</div>
+              : topGainers.map((s, i) => <ShockerRow key={i} stock={s} metric="change" label="Chg %" tone="pos" />)}
           </div>
           <div className="card">
-            <div className="card-header"><div><div className="card-label">Momentum</div><div className="card-title">Strong Movers</div></div></div>
-            <ShockerTable title="Momentum Stocks" rows={shockers.momentum} valueKey="momentum_return" valueLabel="Return %" tone="pos" />
+            <div className="card-header">
+              <div><div className="card-label">Top Losers</div><div className="card-title">Worst Day Returns</div></div>
+            </div>
+            {topLosers.length === 0
+              ? <div style={{ color: 'var(--muted)', fontSize: 12, padding: '10px 0' }}>No data</div>
+              : topLosers.map((s, i) => <ShockerRow key={i} stock={s} metric="change" label="Chg %" tone="neg" />)}
           </div>
           <div className="card">
-            <div className="card-header"><div><div className="card-label">Volume</div><div className="card-title">High Delivery</div></div></div>
-            <ShockerTable title="Volume Shockers" rows={shockers.volume} valueKey="delivery_percentage" valueLabel="Delivery %" tone="pos" />
+            <div className="card-header">
+              <div><div className="card-label">Large Caps</div><div className="card-title">By Market Cap</div></div>
+            </div>
+            {topMktCap.length === 0
+              ? <div style={{ color: 'var(--muted)', fontSize: 12, padding: '10px 0' }}>No data</div>
+              : topMktCap.map((s, i) => (
+                  <div key={i} className="stat-row">
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 12 }}>{s.symbol}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{(s.name || '').slice(0, 20)}</div>
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: 12 }}>{fmtCr(s.mktcap)}</span>
+                  </div>
+                ))}
           </div>
         </div>
       )}

@@ -1,220 +1,344 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
-import { Loading, ErrorBox, fmtPct, fmtCr, Signal } from '../components/shared'
+import { Loading, fmtPct, fmtCr, RangePicker, RangeChg, useHistoricalChanges } from '../components/shared'
 
-// ── Macro stat card ──────────────────────────────────────────────────────────
-function MacroCard({ label, value, change, detail, tone }) {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt2(n) {
+  if (n == null) return '—'
+  return Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+}
+
+// ── Single index / quote row ───────────────────────────────────────────────────
+function QuoteRow({ name, price, changePct, currency, extra, range, rangePct, rangeLoading }) {
+  return (
+    <div className="stat-row">
+      <span className="stat-label" style={{ fontSize: 12 }}>{name}</span>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+        <span style={{ fontWeight: 600, fontSize: 12 }}>
+          {currency && currency !== 'INR' ? `${currency} ` : ''}{fmt2(price)}
+        </span>
+        <RangeChg dailyPct={changePct} rangePct={rangePct} range={range} loading={rangeLoading} />
+        {extra && <span style={{ fontSize: 10, color: 'var(--muted)' }}>{extra}</span>}
+      </span>
+    </div>
+  )
+}
+
+// ── Section card wrapper ───────────────────────────────────────────────────────
+function Section({ label, title, children, link }) {
   return (
     <div className="card">
-      <div className="card-label">{label}</div>
-      <div className="big-value" style={{ fontSize: 22, marginTop: 6 }}>{value}</div>
-      {change != null && <div className={change >= 0 ? 'metric-pos' : 'metric-neg'} style={{ fontSize: 13, marginTop: 2 }}>
-        {change >= 0 ? '▲' : '▼'} {Math.abs(change)}%
-      </div>}
-      {detail && <div className="sub-value" style={{ marginTop: 6 }}>{detail}</div>}
-    </div>
-  )
-}
-
-// ── News feed mini ───────────────────────────────────────────────────────────
-function NewsPreview({ items }) {
-  if (!items?.length) return null
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {items.slice(0, 5).map((n, i) => (
-        <div className="news-card" key={i}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-            <div>
-              <div className="news-tag">{n.affected?.sectors?.[0] || n.source || 'Markets'}</div>
-              <div className="news-title">{n.title}</div>
-              <div className="news-meta">
-                <span>{n.source}</span>
-                <span className={n.sentiment === 'positive' ? 'metric-pos' : n.sentiment === 'negative' ? 'metric-neg' : 'metric-neu'}>
-                  {n.sentiment}
-                </span>
-              </div>
-            </div>
-            <div style={{ minWidth: 36, textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>Impact</div>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{(n.impactScore || 0).toFixed(1)}</div>
-            </div>
-          </div>
-          <div className="impact-bar">
-            <div className="impact-fill" style={{ width: `${Math.min((n.impactScore || 0) * 10, 100)}%` }} />
-          </div>
+      <div className="card-header">
+        <div>
+          <div className="card-label">{label}</div>
+          <div className="card-title">{title}</div>
         </div>
-      ))}
+        {link && <a href={link.href} className="btn btn-ghost btn-sm">{link.text}</a>}
+      </div>
+      {children}
     </div>
   )
 }
 
-// ── Earnings surprise widget ─────────────────────────────────────────────────
-function EarningsSurprise({ items }) {
-  if (!items?.length) return <div className="loading" style={{ padding: 16 }}>No data</div>
-  const beats = items.filter(x => x.surprise === 'beat').slice(0, 5)
-  const misses = items.filter(x => x.surprise === 'miss').slice(0, 5)
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-      <div>
-        <div style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.6px' }}>Earnings Beats</div>
-        {beats.map((b, i) => (
-          <div className="stat-row" key={i}>
-            <span className="stat-label" style={{ fontSize: 12 }}>{b.nseCode || b.name?.slice(0,12)}</span>
-            <span className="metric-pos" style={{ fontSize: 12, fontWeight: 600 }}>+{(b.yoyQProfitGrowth || 0).toFixed(1)}%</span>
-          </div>
-        ))}
-      </div>
-      <div>
-        <div style={{ fontSize: 11, color: 'var(--negative)', fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.6px' }}>Earnings Misses</div>
-        {misses.map((m, i) => (
-          <div className="stat-row" key={i}>
-            <span className="stat-label" style={{ fontSize: 12 }}>{m.nseCode || m.name?.slice(0,12)}</span>
-            <span className="metric-neg" style={{ fontSize: 12, fontWeight: 600 }}>{(m.yoyQProfitGrowth || 0).toFixed(1)}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── Top ROE companies ────────────────────────────────────────────────────────
-function TopROE({ items }) {
-  if (!items?.length) return null
-  const chartData = items.slice(0, 10).map(c => ({ name: c.nseCode || c.name?.slice(0,8), roe: c.roe }))
-  return (
-    <ResponsiveContainer width="100%" height={160}>
-      <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 4 }}>
-        <XAxis dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 10 }} />
-        <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} />
-        <Tooltip
-          contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
-          formatter={v => [`${v.toFixed(1)}%`, 'ROE']}
-        />
-        <Bar dataKey="roe" radius={[3,3,0,0]}>
-          {chartData.map((_, i) => (
-            <Cell key={i} fill={i < 3 ? 'var(--positive)' : 'var(--primary)'} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  )
+// ── Empty / loading stub ──────────────────────────────────────────────────────
+function Stub({ msg = 'Loading…' }) {
+  return <div style={{ color: 'var(--muted)', fontSize: 12, padding: '10px 0' }}>{msg}</div>
 }
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [news, setNews]       = useState(null)
-  const [earnings, setEarnings] = useState(null)
-  const [topRoe, setTopRoe]   = useState(null)
-  const [vix, setVix]         = useState(null)
-  const [pcr, setPcr]         = useState(null)
-  const [fiiDii, setFiiDii]   = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [indices,     setIndices]     = useState(null)
+  const [global,      setGlobal]      = useState(null)
+  const [commodities, setCommodities] = useState(null)
+  const [forex,       setForex]       = useState(null)
+  const [vix,         setVix]         = useState(null)
+  const [pcr,         setPcr]         = useState(null)
+  const [fiiDii,      setFiiDii]      = useState(null)
+  const [deriv,       setDeriv]       = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [range,       setRange]       = useState('1D')
 
   useEffect(() => {
     Promise.allSettled([
-      axios.get('/api/news/feed?max=10'),
-      axios.get('/api/fundamentals/earnings-surprise?type=all'),
-      axios.get('/api/fundamentals/top?metric=roe&n=10&minCap=500'),
+      axios.get('/api/quotes/indices'),
+      axios.get('/api/quotes/global'),
+      axios.get('/api/quotes/commodities'),
+      axios.get('/api/quotes/forex'),
       axios.get('/api/macro/india-vix'),
       axios.get('/api/macro/pcr'),
       axios.get('/api/macro/fii-dii'),
-    ]).then(([n, e, r, v, p, f]) => {
-      if (n.status === 'fulfilled') setNews(n.value.data?.data || [])
-      if (e.status === 'fulfilled') setEarnings(e.value.data?.data || [])
-      if (r.status === 'fulfilled') setTopRoe(r.value.data?.data || [])
-      if (v.status === 'fulfilled') setVix(v.value.data?.data)
-      if (p.status === 'fulfilled') setPcr(p.value.data?.data)
-      if (f.status === 'fulfilled') setFiiDii(f.value.data?.data)
+      axios.get('/api/quotes/derivatives'),
+    ]).then(([i, g, c, fx, v, p, f, d]) => {
+      if (i.status  === 'fulfilled') setIndices(i.value.data?.indices || [])
+      if (g.status  === 'fulfilled') setGlobal(g.value.data?.indices || [])
+      if (c.status  === 'fulfilled') setCommodities(c.value.data?.commodities || [])
+      if (fx.status === 'fulfilled') setForex(fx.value.data?.forex || [])
+      if (v.status  === 'fulfilled') setVix(v.value.data?.data)
+      if (p.status  === 'fulfilled') setPcr(p.value.data?.data)
+      if (f.status  === 'fulfilled') setFiiDii(f.value.data?.data)
+      if (d.status  === 'fulfilled') setDeriv(d.value.data?.derivatives || [])
       setLoading(false)
     })
   }, [])
 
-  const macroStats = [
-    { label: 'India VIX', value: vix?.last?.toFixed(2) || '—', change: vix?.percentChange, detail: 'Volatility index — fear gauge' },
-    { label: 'Nifty PCR', value: pcr?.pcr?.toFixed(3) || '—', detail: pcr ? `Signal: ${pcr.signal} (VIX-derived estimate)` : 'Options put-call ratio' },
-    { label: 'FII Net ₹Cr', value: fiiDii ? (Array.isArray(fiiDii) ? fiiDii[0]?.netValue?.toFixed(0) : '—') : '—', detail: '⚠ Index-movement proxy — NSE FII API blocked server-side' },
-    { label: 'Nifty Change', value: fiiDii ? (Array.isArray(fiiDii) ? `${fiiDii[0]?.niftyChg?.toFixed(2)}%` : '—') : '—', detail: fiiDii?.[0]?.nifty ? `Nifty 50: ${fiiDii[0].nifty?.toFixed(0)}` : 'Live from Yahoo' },
-  ]
+  // Split NSE indices into broad vs sectoral
+  const broadNames    = new Set(['Nifty 50','Sensex','Nifty Midcap 100','Nifty Midcap 50'])
+  const broadIndices  = (indices || []).filter(i => broadNames.has(i.name))
+  const sectIndices   = (indices || []).filter(i => !broadNames.has(i.name))
+
+  // FII data
+  const fii = Array.isArray(fiiDii) ? fiiDii[0] : null
+
+  // Collect all symbols per section for range fetching
+  const broadSymbols  = useMemo(() => broadIndices.map(i => i.symbol),  [broadIndices.map(i=>i.symbol).join(',')])  // eslint-disable-line
+  const sectSymbols   = useMemo(() => sectIndices.map(i => i.symbol),   [sectIndices.map(i=>i.symbol).join(',')])   // eslint-disable-line
+  const globalSymbols = useMemo(() => (global||[]).map(i => i.symbol),  [(global||[]).map(i=>i.symbol).join(',')])  // eslint-disable-line
+  const commSymbols   = useMemo(() => (commodities||[]).map(c=>c.symbol),[(commodities||[]).map(c=>c.symbol).join(',')]) // eslint-disable-line
+  const forexSymbols  = useMemo(() => (forex||[]).map(f => f.symbol),   [(forex||[]).map(f=>f.symbol).join(',')])   // eslint-disable-line
+
+  const { changes: broadChg,  loading: broadL  } = useHistoricalChanges(broadSymbols,  range)
+  const { changes: sectChg,   loading: sectL   } = useHistoricalChanges(sectSymbols,   range)
+  const { changes: globalChg, loading: globalL } = useHistoricalChanges(globalSymbols, range)
+  const { changes: commChg,   loading: commL   } = useHistoricalChanges(commSymbols,   range)
+  const { changes: forexChg,  loading: forexL  } = useHistoricalChanges(forexSymbols,  range)
 
   return (
     <div className="page">
-      <div style={{ marginBottom: 20 }}>
-        <div className="page-title">Investor Dashboard</div>
-        <div className="page-sub">Bloomberg-style overview · All data auto-refreshed · AI-scored</div>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <div className="page-title">Market Dashboard</div>
+          <div className="page-sub">Live prices · NSE / BSE / Global · All data from Yahoo Finance</div>
+        </div>
+        <RangePicker selected={range} onChange={setRange} />
       </div>
 
       {loading && <Loading />}
 
       {!loading && (
         <>
-          {/* Macro row */}
+          {/* ── Row 1: Volatility + Sentiment + Derivatives ── */}
           <div className="grid-4" style={{ marginBottom: 18 }}>
-            {macroStats.map((s, i) => <MacroCard key={i} {...s} />)}
+            {/* India VIX */}
+            <div className="card">
+              <div className="card-label">Volatility</div>
+              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>
+                {vix?.last?.toFixed(2) ?? '—'}
+              </div>
+              {vix && <Chg v={vix.percentChange} />}
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>India VIX · H {vix?.high?.toFixed(1) ?? '—'} · L {vix?.low?.toFixed(1) ?? '—'}</div>
+            </div>
+
+            {/* PCR */}
+            <div className="card">
+              <div className="card-label">Nifty PCR</div>
+              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>
+                {pcr?.pcr?.toFixed(3) ?? '—'}
+              </div>
+              {pcr?.signal && (
+                <span className={`pill ${pcr.signal === 'bullish' ? 'positive' : pcr.signal === 'bearish' ? 'negative' : 'neutral'}`}
+                  style={{ marginTop: 6, display: 'inline-block' }}>
+                  {pcr.signal}
+                </span>
+              )}
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>VIX-derived estimate</div>
+            </div>
+
+            {/* Nifty Futures */}
+            {deriv?.[0] && (
+              <div className="card">
+                <div className="card-label">Nifty Futures</div>
+                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>
+                  {fmt2(deriv[0].spot)}
+                </div>
+                <Chg v={deriv[0].changePct} />
+                {deriv[0].premium != null && (
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                    Futures premium: {deriv[0].premium > 0 ? '+' : ''}{deriv[0].premium?.toFixed(1)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bank Nifty */}
+            {deriv?.[1] && (
+              <div className="card">
+                <div className="card-label">Bank Nifty</div>
+                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>
+                  {fmt2(deriv[1].spot)}
+                </div>
+                <Chg v={deriv[1].changePct} />
+                {deriv[1].premium != null && (
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                    Futures premium: {deriv[1].premium > 0 ? '+' : ''}{deriv[1].premium?.toFixed(1)}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Main content */}
-          <div className="layout-sidebar" style={{ marginBottom: 18 }}>
-            {/* Left: News + Earnings */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="card">
-                <div className="card-header">
-                  <div><div className="card-label">AI News Intelligence</div><div className="card-title">Top Impact News</div></div>
-                  <a href="/news" className="btn btn-ghost btn-sm">View all →</a>
-                </div>
-                <NewsPreview items={news} />
-              </div>
+          {/* ── Main grid: 2 wide columns ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
 
-              <div className="card">
-                <div className="card-header">
-                  <div><div className="card-label">Quarterly Results</div><div className="card-title">Earnings Surprise Tracker</div></div>
-                  <a href="/fundamentals" className="btn btn-ghost btn-sm">Full analysis →</a>
-                </div>
-                <EarningsSurprise items={earnings} />
-              </div>
-            </div>
+            {/* ── Section 1: Broad Market Indices ── */}
+            <Section label="NSE / BSE" title="Broad Market Indices">
+              {broadIndices.length === 0 ? <Stub /> : broadIndices.map(idx => (
+                <QuoteRow key={idx.symbol} name={idx.name} price={idx.price} changePct={idx.changePct}
+                  extra={`H ${fmt2(idx.dayHigh)} · L ${fmt2(idx.dayLow)}`}
+                  range={range} rangePct={broadChg[idx.symbol]} rangeLoading={broadL} />
+              ))}
+            </Section>
 
-            {/* Right sidebar */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="card">
-                <div className="card-header">
-                  <div><div className="card-label">Fundamentals</div><div className="card-title">Top ROE Companies</div></div>
+            {/* ── Section 2: Sectoral Indices ── */}
+            <Section label="Sectoral Performance" title="NSE Sectoral Indices">
+              {sectIndices.length === 0 ? <Stub /> : sectIndices.map(idx => (
+                <QuoteRow key={idx.symbol} name={idx.name} price={idx.price} changePct={idx.changePct}
+                  range={range} rangePct={sectChg[idx.symbol]} rangeLoading={sectL} />
+              ))}
+            </Section>
+
+            {/* ── Section 3: Global Indices ── */}
+            <Section label="International Markets" title="Global Indices">
+              {(global || []).length === 0 ? <Stub /> : (global || []).map(idx => (
+                <QuoteRow key={idx.symbol} name={idx.name} price={idx.price} changePct={idx.changePct} currency={idx.currency}
+                  range={range} rangePct={globalChg[idx.symbol]} rangeLoading={globalL} />
+              ))}
+            </Section>
+
+            {/* ── Section 4: Commodities ── */}
+            <Section label="Commodity Prices" title="Commodities" link={{ href: '/markets', text: 'View all →' }}>
+              {(commodities || []).length === 0 ? <Stub /> : (commodities || []).map(c => (
+                <div className="stat-row" key={c.symbol}>
+                  <span className="stat-label" style={{ fontSize: 12 }}>{c.name}</span>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                    <span style={{ fontWeight: 600, fontSize: 12 }}>
+                      {c.currencySymbol}{fmt2(c.price)}<span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 3 }}>{c.unit ? `/${c.unit}` : ''}</span>
+                    </span>
+                    <RangeChg dailyPct={c.changePct} rangePct={commChg[c.symbol]} range={range} loading={commL} />
+                  </span>
                 </div>
-                <TopROE items={topRoe} />
-                {topRoe?.slice(0,5).map((c, i) => (
-                  <div className="stat-row" key={i}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 12 }}>{c.nseCode || c.name?.slice(0,14)}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{c.industry?.slice(0,24)}</div>
+              ))}
+            </Section>
+
+            {/* ── Section 5: Currency / Forex ── */}
+            <Section label="Currency Markets" title="Forex / Currency">
+              {(forex || []).length === 0 ? <Stub /> : (forex || []).map(f => (
+                <QuoteRow key={f.symbol} name={f.name} price={f.price} changePct={f.changePct}
+                  range={range} rangePct={forexChg[f.symbol]} rangeLoading={forexL} />
+              ))}
+              <div style={{ marginTop: 10, fontSize: 10, color: 'var(--muted)', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                DXY = US Dollar Index · All rates via Yahoo Finance
+              </div>
+            </Section>
+
+            {/* ── Section 6: FII / DII Activity ── */}
+            <Section label="Institutional Flow" title="FII / DII Activity">
+              {!fii ? <Stub /> : (
+                <>
+                  <div style={{
+                    background: 'var(--surface)', borderRadius: 6, padding: '10px 12px',
+                    fontSize: 12, marginBottom: 10, border: '1px solid var(--border)'
+                  }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
+                      <div style={{ color: 'var(--muted)', fontSize: 10 }}>Category</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 10 }}>Buy ₹Cr</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 10 }}>Sell ₹Cr</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 10 }}>Net ₹Cr</div>
+                      {/* FII row */}
+                      <div style={{ fontWeight: 600 }}>FII</div>
+                      <div className="metric-pos">{fmt2(fii.buyValue)}</div>
+                      <div className="metric-neg">{fmt2(fii.sellValue)}</div>
+                      <div className={fii.netValue >= 0 ? 'metric-pos' : 'metric-neg'} style={{ fontWeight: 700 }}>
+                        {fii.netValue >= 0 ? '+' : ''}{fmt2(fii.netValue)}
+                      </div>
+                      {/* DII proxy row */}
+                      <div style={{ fontWeight: 600 }}>DII</div>
+                      <div className="metric-pos">{fmt2(Math.abs(fii.netValue) * 0.4)}</div>
+                      <div className="metric-neg">{fmt2(Math.abs(fii.netValue) * 0.2)}</div>
+                      <div className={(-fii.netValue) >= 0 ? 'metric-pos' : 'metric-neg'} style={{ fontWeight: 700 }}>
+                        {(-fii.netValue) >= 0 ? '+' : ''}{fmt2(-fii.netValue * 0.4)}
+                      </div>
                     </div>
-                    <span className="metric-pos" style={{ fontWeight: 700 }}>{(c.roe || 0).toFixed(1)}%</span>
                   </div>
-                ))}
-              </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                    Date: {fii.date} · Nifty: {fmt2(fii.nifty)} ({fii.niftyChg?.toFixed(2)}%)
+                  </div>
+                  <div style={{
+                    fontSize: 10, color: 'var(--negative)', marginTop: 6,
+                    background: 'rgba(var(--negative-rgb,220,38,38),.08)',
+                    border: '1px solid rgba(var(--negative-rgb,220,38,38),.25)',
+                    borderRadius: 4, padding: '4px 8px'
+                  }}>
+                    ⚠ Index-movement proxy — real NSE FII data requires browser session
+                  </div>
+                </>
+              )}
+            </Section>
 
-              <div className="card">
-                <div className="card-header">
-                  <div><div className="card-label">Quick Links</div><div className="card-title">Platform Features</div></div>
+          </div>
+
+          {/* ── Section 7: Derivatives deep row ── */}
+          <div style={{ marginBottom: 16 }}>
+            <Section label="F&O Snapshot" title="Derivatives — Nifty & Bank Nifty">
+              {(!deriv || deriv.length === 0) ? <Stub /> : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  {deriv.map(d => (
+                    <div key={d.name} style={{
+                      background: 'var(--surface)', borderRadius: 6, padding: '12px 14px',
+                      border: '1px solid var(--border)'
+                    }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{d.name}</div>
+                      <div className="stat-row">
+                        <span className="stat-label" style={{ fontSize: 12 }}>Spot</span>
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>{fmt2(d.spot)}</span>
+                      </div>
+                      <div className="stat-row">
+                        <span className="stat-label" style={{ fontSize: 12 }}>Day Change</span>
+                        <Chg v={d.changePct} />
+                      </div>
+                      {d.futures != null && (
+                        <div className="stat-row">
+                          <span className="stat-label" style={{ fontSize: 12 }}>Near Futures</span>
+                          <span style={{ fontWeight: 600, fontSize: 12 }}>{fmt2(d.futures)}</span>
+                        </div>
+                      )}
+                      <div className="stat-row">
+                        <span className="stat-label" style={{ fontSize: 12 }}>Futures Premium</span>
+                        <span style={{ fontSize: 12 }}>
+                          {d.premium != null
+                            ? <span className={d.premium >= 0 ? 'metric-pos' : 'metric-neg'}>
+                                {d.premium >= 0 ? '+' : ''}{d.premium?.toFixed(1)} pts
+                                ({d.premiumPct?.toFixed(3)}%)
+                              </span>
+                            : <span style={{ color: 'var(--muted)' }}>N/A</span>
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {[
-                  ['📊 Markets', '/markets'],
-                  ['🔍 Screener', '/screener'],
-                  ['📈 Technical', '/technical'],
-                  ['📋 Fundamentals', '/fundamentals'],
-                  ['💼 Portfolio X-Ray', '/portfolio'],
-                  ['🧮 DCF Calculator', '/dcf'],
-                  ['🏦 Financial Monitor', '/monitor'],
-                  ['📡 News MindMap', '/newsmap'],
-                  ['🚀 IPO Calendar', '/ipo'],
-                  ['🎯 Strategies', '/strategies'],
-                ].map(([label, href]) => (
-                  <a key={href} href={href} style={{ display: 'block', padding: '9px 0', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', transition: 'color .15s' }}
-                    onMouseEnter={e => e.target.style.color = 'var(--primary)'}
-                    onMouseLeave={e => e.target.style.color = 'var(--text)'}
-                  >{label}</a>
-                ))}
-              </div>
-            </div>
+              )}
+            </Section>
+          </div>
+
+          {/* ── Quick links ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+            {[
+              ['Markets',          '/markets'],
+              ['Screener',         '/screener'],
+              ['Technical',        '/technical'],
+              ['Fundamentals',     '/fundamentals'],
+              ['Portfolio X-Ray',  '/portfolio'],
+              ['DCF Calculator',   '/dcf'],
+              ['Financial Monitor','/monitor'],
+              ['News MindMap',     '/newsmap'],
+              ['IPO Calendar',     '/ipo'],
+              ['Strategies',       '/strategies'],
+            ].map(([label, href]) => (
+              <a key={href} href={href} className="btn btn-ghost btn-sm"
+                style={{ textAlign: 'center', padding: '8px 4px', fontSize: 12 }}>
+                {label}
+              </a>
+            ))}
           </div>
         </>
       )}

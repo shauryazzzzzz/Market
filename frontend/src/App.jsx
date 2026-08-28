@@ -21,6 +21,7 @@ import PortfolioPage       from './pages/PortfolioPage'
 import DCFPage             from './pages/DCFPage'
 import AdvancedScreener    from './pages/AdvancedScreener'
 import SankeyPage          from './pages/SankeyPage'
+import NseDataPage         from './pages/NseDataPage'
 
 // ── Live ticker hook — fetches real data from /api/quotes/ticker ──────────────
 function useLiveTicker() {
@@ -185,28 +186,10 @@ function TopBar() {
       <div className="brand">
         <span className="brand-icon">🧞</span>
         <div>
-          <div className="brand-name">Aladdin Investing</div>
+          <div className="brand-name">Invest with Aladdin</div>
           <div className="brand-sub">AI-Powered Investor Platform</div>
         </div>
       </div>
-
-      <nav className="topnav">
-        <NavLink to="/">Dashboard</NavLink>
-        <NavLink to="/markets">Markets</NavLink>
-        <NavLink to="/news">News</NavLink>
-        <NavLink to="/newsmap">📡 NewsMap</NavLink>
-        <NavLink to="/fundamentals">Fundamentals</NavLink>
-        <NavLink to="/technical">Technical</NavLink>
-        <NavLink to="/screener">Screener</NavLink>
-        <NavLink to="/advanced-screener">🏆 GS Screener</NavLink>
-        <NavLink to="/sankey">📊 Sankey</NavLink>
-        <NavLink to="/compare">Compare</NavLink>
-        <NavLink to="/portfolio">💼 Portfolio</NavLink>
-        <NavLink to="/dcf">🧮 DCF</NavLink>
-        <NavLink to="/monitor">📊 Monitor</NavLink>
-        <NavLink to="/ipo">IPO</NavLink>
-        <NavLink to="/strategies">Strategies</NavLink>
-      </nav>
 
       <div className="topbar-right">
         <StockSearchBar />
@@ -218,30 +201,61 @@ function TopBar() {
   )
 }
 
+function SideNav() {
+  return (
+    <aside className="sidenav">
+      <nav className="sidenav-links">
+        <NavLink to="/">📊 Dashboard</NavLink>
+        <NavLink to="/markets">🌐 Markets</NavLink>
+        <NavLink to="/news">📰 News</NavLink>
+        <NavLink to="/newsmap">📡 NewsMap</NavLink>
+        <NavLink to="/fundamentals">📈 Fundamentals</NavLink>
+        <NavLink to="/technical">🔬 Technical</NavLink>
+        <NavLink to="/screener">🔍 Screener</NavLink>
+        <NavLink to="/advanced-screener">🏆 GS Screener</NavLink>
+        <NavLink to="/sankey">📊 Sankey</NavLink>
+        <NavLink to="/compare">⚖️ Compare</NavLink>
+        <NavLink to="/portfolio">💼 Portfolio</NavLink>
+        <NavLink to="/dcf">🧮 DCF</NavLink>
+        <NavLink to="/monitor">🖥️ Monitor</NavLink>
+        <NavLink to="/ipo">🚀 IPO</NavLink>
+        <NavLink to="/strategies">♟️ Strategies</NavLink>
+        <NavLink to="/nse-data">📋 NSE Data</NavLink>
+      </nav>
+    </aside>
+  )
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <div className="app-shell">
         <TopBar />
         <TickerStrip />
-        <Routes>
-          <Route path="/"              element={<Dashboard />} />
-          <Route path="/markets"       element={<Markets />} />
-          <Route path="/news"          element={<NewsPage />} />
-          <Route path="/newsmap"       element={<NewsMapPage />} />
-          <Route path="/fundamentals"  element={<Fundamentals />} />
-          <Route path="/technical"     element={<TechnicalPage />} />
-          <Route path="/screener"      element={<Screener />} />
-          <Route path="/compare"       element={<PeerComparison />} />
-          <Route path="/stock/:symbol" element={<StockDeepDive />} />
-          <Route path="/portfolio"         element={<PortfolioPage />} />
-          <Route path="/dcf"               element={<DCFPage />} />
-          <Route path="/monitor"           element={<FinancialMonitorPage />} />
-          <Route path="/ipo"               element={<IPOCalendar />} />
-          <Route path="/strategies"        element={<Strategies />} />
-          <Route path="/advanced-screener" element={<AdvancedScreener />} />
-          <Route path="/sankey"            element={<SankeyPage />} />
-        </Routes>
+        <div className="app-body">
+          <SideNav />
+          <main className="main-content">
+            <Routes>
+              <Route path="/"              element={<Dashboard />} />
+              <Route path="/markets"       element={<Markets />} />
+              <Route path="/news"          element={<NewsPage />} />
+              <Route path="/newsmap"       element={<NewsMapPage />} />
+              <Route path="/fundamentals"  element={<Fundamentals />} />
+              <Route path="/technical"     element={<TechnicalPage />} />
+              <Route path="/screener"      element={<Screener />} />
+              <Route path="/compare"       element={<PeerComparison />} />
+              <Route path="/stock/:symbol" element={<StockDeepDive />} />
+              <Route path="/portfolio"         element={<PortfolioPage />} />
+              <Route path="/dcf"               element={<DCFPage />} />
+              <Route path="/monitor"           element={<FinancialMonitorPage />} />
+              <Route path="/ipo"               element={<IPOCalendar />} />
+              <Route path="/strategies"        element={<Strategies />} />
+              <Route path="/advanced-screener" element={<AdvancedScreener />} />
+              <Route path="/sankey"            element={<SankeyPage />} />
+              <Route path="/nse-data"          element={<NseDataPage />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </BrowserRouter>
   )

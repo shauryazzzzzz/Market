@@ -312,7 +312,12 @@ async function loadSheet() {
   // Fallback: local cached CSV
   try {
     const fs = require('fs'), path = require('path');
-    const localPath = path.join(__dirname, '..', 'data', 'google-sheet-main.csv');
+    // Check both locations: data/ (legacy) and data/Raw data/ (current)
+    const candidates = [
+      path.join(__dirname, '..', 'data', 'google-sheet-main.csv'),
+      path.join(__dirname, '..', 'data', 'Raw data', 'google-sheet-main.csv'),
+    ];
+    const localPath = candidates.find(p => fs.existsSync(p)) || candidates[0];
     const csv = fs.readFileSync(localPath, 'utf8');
     const lines = csv.split('\n').filter(l => l.trim());
     const rows = lines.slice(1).map(l => parseRow(parseCSVLine(l))).filter(r => r.name && r.nseCode);

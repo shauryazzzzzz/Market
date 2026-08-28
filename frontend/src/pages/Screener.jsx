@@ -6,7 +6,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Loading, fmtCr, fmtPct, fmt, Signal } from '../components/shared'
+import { Loading, fmtCr, fmtPct, fmt, Signal, RangePicker, RangeChg, useHistoricalChanges } from '../components/shared'
 
 // ── Preset screen configurations ─────────────────────────────────────────────
 const PRESETS = [
@@ -147,6 +147,7 @@ export default function Screener() {
   const [sortDir,  setSortDir]   = useState(-1)
   const [industries, setInds]    = useState([])
   const [activePreset, setPreset] = useState(null)
+  const [range,    setRange]     = useState('1D')
 
   // Load industry list once
   useEffect(() => {
@@ -226,6 +227,10 @@ export default function Screener() {
       return sortDir * (bv - av)
     })
   }, [results, sortBy, sortDir])
+
+  // Range-change fetching for screener results
+  const resultSymbols = useMemo(() => sorted.map(s => s.nseCode ? (s.nseCode.includes('.NS') ? s.nseCode : s.nseCode + '.NS') : null).filter(Boolean), [sorted.map(s=>s.nseCode).join(',')]) // eslint-disable-line
+  const { changes: rangeChg, loading: rangeL } = useHistoricalChanges(resultSymbols, range)
 
   // Summary stats
   const buys  = results.filter(s => sigRating(s) === 'BUY').length
@@ -466,9 +471,10 @@ export default function Screener() {
             <div className="card-title">
               {loading ? 'Running screen…' : `${sorted.length} Results`}
             </div>
-            {sorted.length > 0 && (
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Click row for deep-dive</span>
-            )}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              {sorted.length > 0 && <RangePicker selected={range} onChange={setRange} />}
+              {sorted.length > 0 && <span style={{ fontSize: 12, color: 'var(--muted)' }}>Click row for deep-dive</span>}
+            </div>
           </div>
           {loading ? <Loading /> : sorted.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
@@ -492,40 +498,45 @@ export default function Screener() {
                     <SortTh col="debtToEquity"    label="D/E"         sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <SortTh col="piotroskiScore"  label="Piotroski"   sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <SortTh col="profitGrowth"    label="PAT Gr%"     sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                    <SortTh col="return1yr"       label="Ret 1Y%"     sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                    <th style={{ textAlign: 'right' }}>Chg {range !== '1D' ? `(${range})` : '(1D)'}</th>
                     <SortTh col="dividendYield"   label="Div%"        sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <th>Signal</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((s, i) => (
-                    <tr key={s.nseCode ?? i}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => s.nseCode && navigate(`/stock/${s.nseCode}`)}>
-                      <td style={{ color: 'var(--muted)', fontSize: 11 }}>{i + 1}</td>
-                      <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>{s.name}</td>
-                      <td className="sym">{s.nseCode ?? '—'}</td>
-                      <td style={{ color: 'var(--muted)', fontSize: 12, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.industry}</td>
-                      <td style={{ textAlign: 'right' }}>{s.currentPrice != null ? `₹${Number(s.currentPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'}</td>
-                      <td style={{ textAlign: 'right', fontSize: 12 }}>{fmtCr(s.marketCap)}</td>
-                      <td style={{ textAlign: 'right' }}>{fmt(s.pe)}</td>
-                      <td style={{ textAlign: 'right' }}>{fmt(s.pb)}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <span className={(s.roe ?? 0) >= 15 ? 'metric-pos' : (s.roe ?? 0) >= 10 ? '' : 'metric-neg'}>{fmt(s.roe)}%</span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>{fmt(s.opm)}%</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <span className={(s.debtToEquity ?? 0) <= 0.5 ? 'metric-pos' : (s.debtToEquity ?? 0) > 1.5 ? 'metric-neg' : ''}>{fmt(s.debtToEquity)}</span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <span className={(s.piotroskiScore ?? 0) >= 7 ? 'metric-pos' : (s.piotroskiScore ?? 0) >= 4 ? '' : 'metric-neg'}>{s.piotroskiScore ?? '—'}</span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>{fmtPct(s.profitGrowth)}</td>
-                      <td style={{ textAlign: 'right' }}>{fmtPct(s.return1yr)}</td>
-                      <td style={{ textAlign: 'right' }}>{s.dividendYield != null ? `${fmt(s.dividendYield)}%` : '—'}</td>
-                      <td><Signal rating={sigRating(s)} /></td>
-                    </tr>
-                  ))}
+                  {sorted.map((s, i) => {
+                    const nsSym = s.nseCode ? (s.nseCode.includes('.NS') ? s.nseCode : s.nseCode + '.NS') : null
+                    return (
+                      <tr key={s.nseCode ?? i}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => s.nseCode && navigate(`/stock/${s.nseCode}`)}>
+                        <td style={{ color: 'var(--muted)', fontSize: 11 }}>{i + 1}</td>
+                        <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>{s.name}</td>
+                        <td className="sym">{s.nseCode ?? '—'}</td>
+                        <td style={{ color: 'var(--muted)', fontSize: 12, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.industry}</td>
+                        <td style={{ textAlign: 'right' }}>{s.currentPrice != null ? `₹${Number(s.currentPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'}</td>
+                        <td style={{ textAlign: 'right', fontSize: 12 }}>{fmtCr(s.marketCap)}</td>
+                        <td style={{ textAlign: 'right' }}>{fmt(s.pe)}</td>
+                        <td style={{ textAlign: 'right' }}>{fmt(s.pb)}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span className={(s.roe ?? 0) >= 15 ? 'metric-pos' : (s.roe ?? 0) >= 10 ? '' : 'metric-neg'}>{fmt(s.roe)}%</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{fmt(s.opm)}%</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span className={(s.debtToEquity ?? 0) <= 0.5 ? 'metric-pos' : (s.debtToEquity ?? 0) > 1.5 ? 'metric-neg' : ''}>{fmt(s.debtToEquity)}</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span className={(s.piotroskiScore ?? 0) >= 7 ? 'metric-pos' : (s.piotroskiScore ?? 0) >= 4 ? '' : 'metric-neg'}>{s.piotroskiScore ?? '—'}</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{fmtPct(s.profitGrowth)}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <RangeChg dailyPct={null} rangePct={nsSym ? rangeChg[nsSym] : null} range={range} loading={rangeL} />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{s.dividendYield != null ? `${fmt(s.dividendYield)}%` : '—'}</td>
+                        <td><Signal rating={sigRating(s)} /></td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

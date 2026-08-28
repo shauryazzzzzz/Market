@@ -12,7 +12,7 @@ import {
   PolarAngleAxis, PolarRadiusAxis, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
 } from 'recharts'
-import { Loading, ErrorBox, Signal, GradeBadge, fmtCr, fmtPct, fmt } from '../components/shared'
+import { Loading, ErrorBox, Signal, GradeBadge, fmtCr, fmtPct, fmt, RangePicker, useHistoricalChanges } from '../components/shared'
 
 // ── Snowflake axis scoring ────────────────────────────────────────────────────
 function scoreAxes(c) {
@@ -338,6 +338,7 @@ export default function StockDeepDive() {
   const [gsData,  setGsData]  = useState(null)   // Google Sheet advanced data
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
+  const [range,   setRange]   = useState('1D')
 
   useEffect(() => {
     if (!symbol) return
@@ -374,6 +375,11 @@ export default function StockDeepDive() {
   const lp     = livePriceData
   const price  = lp?.price ?? c.currentPrice
   const chgPct = lp?.changePct ?? null
+
+  // Historical range change for this single stock
+  const nsSym = c.nseCode ? [c.nseCode.includes('.NS') ? c.nseCode : c.nseCode + '.NS'] : []
+  const { changes: rangeChg, loading: rangeL } = useHistoricalChanges(nsSym, range)
+  const historicalChangePct = nsSym[0] ? rangeChg[nsSym[0]] : null
 
   const scores    = scoreAxes(c)
   const avgScores = industryAvg
@@ -445,24 +451,41 @@ export default function StockDeepDive() {
                 <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1 }}>
                   ₹{Number(price).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </div>
-                {chgPct != null && (
-                  <div style={{ fontSize: 14, marginTop: 4 }}>
-                    <span className={chgPct >= 0 ? 'metric-pos' : 'metric-neg'}>
-                      {chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%
-                    </span>
-                    {lp?.change != null && (
-                      <span style={{ color: muted, marginLeft: 6, fontSize: 12 }}>
-                        ({lp.change >= 0 ? '+' : ''}{lp.change.toFixed(2)})
+                <div style={{ fontSize: 14, marginTop: 4 }}>
+                  {range === '1D' ? (
+                    chgPct != null ? (
+                      <>
+                        <span className={chgPct >= 0 ? 'metric-pos' : 'metric-neg'}>
+                          {chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%
+                        </span>
+                        {lp?.change != null && (
+                          <span style={{ color: muted, marginLeft: 6, fontSize: 12 }}>
+                            ({lp.change >= 0 ? '+' : ''}{lp.change.toFixed(2)})
+                          </span>
+                        )}
+                      </>
+                    ) : null
+                  ) : (
+                    rangeL ? (
+                      <span style={{ color: muted, fontSize: 12 }}>…</span>
+                    ) : historicalChangePct != null ? (
+                      <span className={historicalChangePct >= 0 ? 'metric-pos' : 'metric-neg'}>
+                        {historicalChangePct >= 0 ? '+' : ''}{historicalChangePct.toFixed(2)}% ({range})
                       </span>
-                    )}
-                  </div>
-                )}
+                    ) : (
+                      <span style={{ color: muted }}>—</span>
+                    )
+                  )}
+                </div>
               </>
             ) : (
               <div style={{ color: muted }}>Price unavailable</div>
             )}
             <div style={{ fontSize: 12, color: muted, marginTop: 4 }}>
               Mkt Cap: <strong style={{ color: 'var(--text)' }}>{fmtCr(c.marketCap)}</strong>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <RangePicker selected={range} onChange={setRange} />
             </div>
           </div>
         </div>
