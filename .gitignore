@@ -57,3 +57,7 @@ financial-monitor/node_modules/
 financial-monitor/.bob/
 NewsFeed-Google-AI-/node_modules/
 NewsFeed-Google-AI-/.git/
+
+data/NSE_Combined_25Aug2026.xlsx
+data/Combined_Raw_Data.xlsx
+
