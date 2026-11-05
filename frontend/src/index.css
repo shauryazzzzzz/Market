@@ -1,6 +1,9 @@
 /* Global CSS — Aladdin Investing React App
-   Dark-mode first, Bloomberg/Refinitiv-inspired palette
+   Dark-mode first (default), Bloomberg/Refinitiv-inspired palette.
+   Light mode is supported via prefers-color-scheme and data-theme="light".
 */
+
+/* ── Dark theme (default) ───────────────────────────────────────────────────── */
 :root {
   --bg:           #0d1117;
   --bg2:          #161b22;
@@ -19,15 +22,67 @@
   --radius-lg:    12px;
   --font:         'Inter', 'Segoe UI', system-ui, sans-serif;
   --shadow:       0 4px 16px rgba(0,0,0,0.4);
+  color-scheme: dark;
 }
 
+/* ── Light theme — system preference ─────────────────────────────────────────── */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:       #ffffff;
+    --bg2:      #f6f8fa;
+    --bg3:      #eaeef2;
+    --surface:  #d0d7de;
+    --border:   #d0d7de;
+    --text:     #1f2328;
+    --muted:    #57606a;
+    --positive: #1a7f37;
+    --negative: #cf222e;
+    --warning:  #9a6700;
+    --primary:  #0969da;
+    --primary-dk:#0550ae;
+    --accent:   #8250df;
+    --shadow:   0 4px 16px rgba(0,0,0,0.12);
+    color-scheme: light;
+  }
+}
+
+/* ── Manual light theme override (data-theme="light" on <html>) ─────────────── */
+[data-theme="light"] {
+  --bg:       #ffffff;
+  --bg2:      #f6f8fa;
+  --bg3:      #eaeef2;
+  --surface:  #d0d7de;
+  --border:   #d0d7de;
+  --text:     #1f2328;
+  --muted:    #57606a;
+  --positive: #1a7f37;
+  --negative: #cf222e;
+  --warning:  #9a6700;
+  --primary:  #0969da;
+  --primary-dk:#0550ae;
+  --accent:   #8250df;
+  --shadow:   0 4px 16px rgba(0,0,0,0.12);
+  color-scheme: light;
+}
+
+/* ── Reset & base ─────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; font-size: 14px; }
+
+/* min-height: 100vh prevents zero-height blank during React hydration */
+html { min-height: 100vh; font-size: 14px; }
 body {
+  min-height: 100vh;
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
+}
+
+/* #root must fill the viewport so the dark bg is always visible, never blank */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; border: none; background: none; }
@@ -45,7 +100,7 @@ input, select { font: inherit; }
   position: sticky; top: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 24px; height: 56px;
-  background: rgba(13,17,23,0.95);
+  background: var(--bg);          /* uses CSS variable — works in both dark & light */
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(12px);
   flex-shrink: 0;

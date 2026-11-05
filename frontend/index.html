@@ -4,10 +4,55 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>Aladdin Investing — AI-Powered Platform</title>
+    <!--
+      Inline critical styles: prevent the black-flash before React/CSS loads.
+      Sets a dark background immediately so the transition is seamless,
+      and gives #root min-height so the page is never a zero-height blank.
+    -->
+    <style>
+      html, body { margin: 0; padding: 0; min-height: 100vh; }
+      body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', system-ui, sans-serif; }
+      #root { min-height: 100vh; display: flex; flex-direction: column; }
+      /* Light-mode override applied instantly before JS loads */
+      @media (prefers-color-scheme: light) {
+        body { background: #ffffff; color: #1f2328; }
+      }
+      /* Skeleton splash — visible for the ~200ms before React mounts */
+      #root-splash {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        background: inherit; transition: opacity 0.2s ease;
+      }
+      #root-splash.hidden { opacity: 0; pointer-events: none; }
+      .splash-brand { display: flex; align-items: center; gap: 12px; font-family: inherit; }
+      .splash-icon  { font-size: 32px; }
+      .splash-text  { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; }
+      .splash-sub   { font-size: 12px; opacity: 0.5; margin-top: 2px; }
+    </style>
   </head>
   <body>
+    <!-- Instant splash prevents blank screen during JS parse + React hydration -->
+    <div id="root-splash">
+      <div class="splash-brand">
+        <span class="splash-icon">🧞</span>
+        <div>
+          <div class="splash-text">Aladdin Investing</div>
+          <div class="splash-sub">Loading platform…</div>
+        </div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Hide splash as soon as React has painted its first frame -->
+    <script type="module">
+      // requestAnimationFrame fires after the first React paint
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const s = document.getElementById('root-splash');
+          if (s) { s.classList.add('hidden'); setTimeout(() => s.remove(), 250); }
+        });
+      });
+    </script>
   </body>
 </html>

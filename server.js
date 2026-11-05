@@ -871,28 +871,72 @@ app.get('/api/macro/pcr', async (req, res) => {
 app.get('/api/macro/fii-dii', async (req, res) => {
   if (!_yf) return res.json({ success: false, error: 'yahoo-finance2 unavailable', data: null });
   try {
+    // Try to fetch real FII/DII data from NSE directly
+    const https = require('https');
+    const realData = await new Promise((resolve) => {
+      // NSE publishes FII/DII activity at this endpoint (requires session cookie)
+      const req2 = https.get(
+        'https://www.nseindia.com/api/fiidiiTradeReact',
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
+            'Referer': 'https://www.nseindia.com/',
+          },
+          timeout: 8000,
+        },
+        (r) => {
+          let d = '';
+          r.on('data', c => d += c);
+          r.on('end', () => {
+            try { resolve(JSON.parse(d)); }
+            catch { resolve(null); }
+          });
+        }
+      );
+      req2.on('error', () => resolve(null));
+      req2.on('timeout', () => { req2.destroy(); resolve(null); });
+    });
+
+    // Fetch Nifty data in parallel for display context
     const [nsei, bank] = await Promise.allSettled([
       _yf.quote('^NSEI',    {}, { validateResult: false }),
       _yf.quote('^CNXBANK', {}, { validateResult: false }),
     ]);
-    const nifty = nsei.status  === 'fulfilled' ? nsei.value  : null;
-    const bnk   = bank.status  === 'fulfilled' ? bank.value  : null;
+    const nifty = nsei.status === 'fulfilled' ? nsei.value : null;
+    const bnk   = bank.status === 'fulfilled' ? bank.value : null;
     const chg   = nifty?.regularMarketChangePercent || 0;
-    // Sign-based FII/DII proxy: positive Nifty day → net FII buy, else sell
-    const fiiNet  = parseFloat((chg * 500).toFixed(0));   // ₹ Cr approximation
-    const diiNet  = parseFloat((-chg * 200).toFixed(0));
+
+    // If we got real NSE data, use it
+    if (Array.isArray(realData) && realData.length > 0) {
+      const rows = realData.map(r => ({
+        date:      r.date || new Date().toISOString().split('T')[0],
+        category:  r.category,
+        buyValue:  parseFloat(r.buyValue)  || 0,
+        sellValue: parseFloat(r.sellValue) || 0,
+        netValue:  parseFloat(r.netValue)  || 0,
+        nifty:     nifty?.regularMarketPrice,
+        niftyChg:  chg,
+        bankNifty: bnk?.regularMarketPrice,
+        isProxy:   false,
+      }));
+      return res.json({ success: true, data: rows });
+    }
+
+    // Fallback: Nifty-movement proxy (clearly flagged)
+    const fiiNet = parseFloat((chg * 500).toFixed(0));
     res.json({
       success: true,
       data: [{
-        date:       new Date().toISOString().split('T')[0],
-        buyValue:   Math.max(fiiNet, 0),
-        sellValue:  Math.max(-fiiNet, 0),
-        netValue:   fiiNet,
-        category:   'FII',
-        nifty:      nifty?.regularMarketPrice,
-        niftyChg:   chg,
-        bankNifty:  bnk?.regularMarketPrice,
-        note:       'Index-movement proxy — NSE FII API requires browser session'
+        date:      new Date().toISOString().split('T')[0],
+        buyValue:  Math.max(fiiNet, 0),
+        sellValue: Math.max(-fiiNet, 0),
+        netValue:  fiiNet,
+        category:  'FII',
+        nifty:     nifty?.regularMarketPrice,
+        niftyChg:  chg,
+        bankNifty: bnk?.regularMarketPrice,
+        isProxy:   true,   // flag consumed by frontend to show/hide the note
       }]
     });
   } catch (e) {
@@ -1981,6 +2025,140 @@ app.get('/api/gs/sankey-data', async (req, res) => {
 })();
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SECTION 10 — NSE Bhavcopy Integration
+// ─────────────────────────────────────────────────────────────────────────────
+const bhav = require('./services/nse-bhavcopy');
+
+/**
+ * GET /api/bhavcopy/summary
+ * Market-level summary: total turnover, advances, declines, unchanged, trade date.
+ */
+app.get('/api/bhavcopy/summary', async (req, res) => {
+  try {
+    const d = await bhav.getBhavData();
+    if (!d.success) return res.status(503).json(d);
+    res.json({
+      success: true,
+      tradeDate:      d.tradeDate,
+      totalSymbols:   d.totalSymbols,
+      advances:       d.advances,
+      declines:       d.declines,
+      unchanged:      d.unchanged,
+      totalTurnoverCr:d.totalTurnoverCr,
+      adRatio:        d.declines > 0 ? +(d.advances / d.declines).toFixed(2) : null,
+      source:         d.source,
+    });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+/**
+ * GET /api/bhavcopy/gainers?limit=20
+ * Top gainers by % change (EQ series, min ₹1 Cr turnover, price > ₹10).
+ */
+app.get('/api/bhavcopy/gainers', async (req, res) => {
+  try {
+    const d = await bhav.getBhavData();
+    if (!d.success) return res.status(503).json(d);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    res.json({ success: true, tradeDate: d.tradeDate, data: d.gainers.slice(0, limit) });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+/**
+ * GET /api/bhavcopy/losers?limit=20
+ * Top losers by % change.
+ */
+app.get('/api/bhavcopy/losers', async (req, res) => {
+  try {
+    const d = await bhav.getBhavData();
+    if (!d.success) return res.status(503).json(d);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    res.json({ success: true, tradeDate: d.tradeDate, data: d.losers.slice(0, limit) });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+/**
+ * GET /api/bhavcopy/active?by=value&limit=20
+ * Most active stocks by traded value (by=value) or volume (by=volume).
+ */
+app.get('/api/bhavcopy/active', async (req, res) => {
+  try {
+    const d = await bhav.getBhavData();
+    if (!d.success) return res.status(503).json(d);
+    const by    = req.query.by === 'volume' ? 'byVolume' : 'byValue';
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    res.json({ success: true, tradeDate: d.tradeDate, by, data: d[by].slice(0, limit) });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+/**
+ * GET /api/bhavcopy/delivery?limit=20
+ * High delivery percentage stocks (only when MTO data available).
+ */
+app.get('/api/bhavcopy/delivery', async (req, res) => {
+  try {
+    const d = await bhav.getBhavData();
+    if (!d.success) return res.status(503).json(d);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    // Sort by delivery %, filter rows that have delivery data
+    const withDeliv = d.rows
+      .filter(r => r.series === 'EQ' && r.delivPct != null && r.delivPct > 0 && r.turnoverCr >= 1)
+      .sort((a, b) => b.delivPct - a.delivPct)
+      .slice(0, limit);
+    res.json({ success: true, tradeDate: d.tradeDate, data: withDeliv });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+/**
+ * GET /api/bhavcopy/sectors
+ * Sector aggregates: count, advances, declines, total turnover, avg % change.
+ */
+app.get('/api/bhavcopy/sectors', async (req, res) => {
+  try {
+    const d = await bhav.getBhavData();
+    if (!d.success) return res.status(503).json(d);
+    res.json({ success: true, tradeDate: d.tradeDate, data: d.sectors });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+/**
+ * GET /api/bhavcopy/all?limit=500
+ * Full normalised rows (paginated). Use for custom client-side processing.
+ */
+app.get('/api/bhavcopy/all', async (req, res) => {
+  try {
+    const d = await bhav.getBhavData();
+    if (!d.success) return res.status(503).json(d);
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 200), 500);
+    const series = (req.query.series || '').toUpperCase();
+    let rows = d.rows;
+    if (series) rows = rows.filter(r => r.series === series);
+    const total = rows.length;
+    const start = (page - 1) * limit;
+    res.json({
+      success: true, tradeDate: d.tradeDate, total, page, limit,
+      pages: Math.ceil(total / limit),
+      data: rows.slice(start, start + limit),
+    });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+/**
+ * POST /api/bhavcopy/refresh
+ * Force-invalidates the Bhavcopy cache and re-fetches from NSE.
+ */
+app.post('/api/bhavcopy/refresh', async (req, res) => {
+  try {
+    bhav.invalidateCache();
+    const d = await bhav.getBhavData();
+    res.json({ success: d.success, tradeDate: d.tradeDate, totalSymbols: d.totalSymbols, error: d.error });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+console.log('[BHAVCOPY] Section 10 loaded — /api/bhavcopy/*');
+
+// ─────────────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🧞 Aladdin Investing server → http://localhost:${PORT}`);
   console.log(`📊 Investor Dashboard → http://localhost:${PORT}/dashboard`);
@@ -1990,5 +2168,6 @@ app.listen(PORT, () => {
   console.log(`🔧 Technical Analysis: POST /api/technical/analyse`);
   console.log(`💹 Kite Connect: /api/kite/...`);
   console.log(`🌍 Macro: /api/macro/fii-dii  /api/macro/india-vix  /api/macro/pcr`);
-  console.log(`📋 Google Sheet: /api/gs/top  /api/gs/screener  /api/gs/jumps  /api/gs/all-green\n`);
+  console.log(`📋 Google Sheet: /api/gs/top  /api/gs/screener  /api/gs/jumps  /api/gs/all-green`);
+  console.log(`📥 NSE Bhavcopy: /api/bhavcopy/summary  /api/bhavcopy/gainers  /api/bhavcopy/losers\n`);
 });

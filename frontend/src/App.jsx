@@ -4,6 +4,29 @@ import axios from 'axios'
 import './index.css'
 import DummyDataBanner from './components/DummyDataBanner'
 
+// ── Theme toggle helper ───────────────────────────────────────────────────────
+function useTheme() {
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aladdin-theme')
+      if (saved) return saved
+    } catch (_) {}
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+    try { localStorage.setItem('aladdin-theme', theme) } catch (_) {}
+  }, [theme])
+
+  const toggle = useCallback(() => setTheme(t => t === 'dark' ? 'light' : 'dark'), [])
+  return { theme, toggle }
+}
+
 // Pages
 import Dashboard           from './pages/Dashboard'
 import Markets             from './pages/Markets'
@@ -22,10 +45,23 @@ import DCFPage             from './pages/DCFPage'
 import AdvancedScreener    from './pages/AdvancedScreener'
 import SankeyPage          from './pages/SankeyPage'
 import NseDataPage         from './pages/NseDataPage'
+import BhavcopDashboard   from './pages/BhavcopDashboard'
+
+// ── Placeholder ticker items shown immediately before data loads ──────────────
+const TICKER_PLACEHOLDER = [
+  { name: 'NIFTY 50',   value: '…', change: '…', pos: true },
+  { name: 'SENSEX',     value: '…', change: '…', pos: true },
+  { name: 'BANK NIFTY', value: '…', change: '…', pos: true },
+  { name: 'GOLD',       value: '…', change: '…', pos: true },
+  { name: 'USD/INR',    value: '…', change: '…', pos: false },
+  { name: 'CRUDE',      value: '…', change: '…', pos: true },
+  { name: 'VIX',        value: '…', change: '…', pos: false },
+]
 
 // ── Live ticker hook — fetches real data from /api/quotes/ticker ──────────────
 function useLiveTicker() {
-  const [items, setItems]   = useState([])
+  // Start with placeholder so ticker is never empty/blank during 2s fetch
+  const [items, setItems]   = useState(TICKER_PLACEHOLDER)
   const [isLive, setIsLive] = useState(null) // null = loading, true = live, false = dummy
 
   const fetch = useCallback(async () => {
@@ -181,6 +217,7 @@ function StockSearchBar() {
 
 function TopBar() {
   const status = marketStatus()
+  const { theme, toggle } = useTheme()
   return (
     <header className="topbar">
       <div className="brand">
@@ -196,6 +233,18 @@ function TopBar() {
         <span className={`pill ${status === 'open' ? 'positive' : status === 'pre' ? 'warning' : 'negative'}`}>
           {status === 'open' ? '● Market Open' : status === 'pre' ? '◐ Pre-Market' : '○ Market Closed'}
         </span>
+        {/* Theme toggle */}
+        <button
+          onClick={toggle}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '4px 8px', fontSize: 14, cursor: 'pointer',
+            color: 'var(--text)', lineHeight: 1,
+          }}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
       </div>
     </header>
   )
@@ -221,6 +270,7 @@ function SideNav() {
         <NavLink to="/ipo">🚀 IPO</NavLink>
         <NavLink to="/strategies">♟️ Strategies</NavLink>
         <NavLink to="/nse-data">📋 NSE Data</NavLink>
+        <NavLink to="/bhavcopy">📥 Bhavcopy</NavLink>
       </nav>
     </aside>
   )
@@ -253,6 +303,7 @@ export default function App() {
               <Route path="/advanced-screener" element={<AdvancedScreener />} />
               <Route path="/sankey"            element={<SankeyPage />} />
               <Route path="/nse-data"          element={<NseDataPage />} />
+              <Route path="/bhavcopy"          element={<BhavcopDashboard />} />
             </Routes>
           </main>
         </div>

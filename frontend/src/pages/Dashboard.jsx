@@ -8,6 +8,17 @@ function fmt2(n) {
   return Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 })
 }
 
+// Coloured % change span — used throughout Dashboard
+function Chg({ v }) {
+  if (v == null) return <span style={{ color: 'var(--muted)' }}>—</span>
+  const pos = v >= 0
+  return (
+    <span className={pos ? 'metric-pos' : 'metric-neg'} style={{ fontSize: 12 }}>
+      {pos ? '▲' : '▼'} {Math.abs(v).toFixed(2)}%
+    </span>
+  )
+}
+
 // ── Single index / quote row ───────────────────────────────────────────────────
 function QuoteRow({ name, price, changePct, currency, extra, range, rangePct, rangeLoading }) {
   return (
@@ -86,8 +97,9 @@ export default function Dashboard() {
   const broadIndices  = (indices || []).filter(i => broadNames.has(i.name))
   const sectIndices   = (indices || []).filter(i => !broadNames.has(i.name))
 
-  // FII data
-  const fii = Array.isArray(fiiDii) ? fiiDii[0] : null
+  // FII / DII data — API returns array; first item is FII, second (if real data) is DII
+  const fii = Array.isArray(fiiDii) ? fiiDii.find(r => r.category === 'FII') || fiiDii[0] : null
+  const dii = Array.isArray(fiiDii) ? fiiDii.find(r => r.category === 'DII') : null
 
   // Collect all symbols per section for range fetching
   const broadSymbols  = useMemo(() => broadIndices.map(i => i.symbol),  [broadIndices.map(i=>i.symbol).join(',')])  // eslint-disable-line
@@ -250,26 +262,28 @@ export default function Dashboard() {
                       <div className={fii.netValue >= 0 ? 'metric-pos' : 'metric-neg'} style={{ fontWeight: 700 }}>
                         {fii.netValue >= 0 ? '+' : ''}{fmt2(fii.netValue)}
                       </div>
-                      {/* DII proxy row */}
+                      {/* DII row — real when available, proxy otherwise */}
                       <div style={{ fontWeight: 600 }}>DII</div>
-                      <div className="metric-pos">{fmt2(Math.abs(fii.netValue) * 0.4)}</div>
-                      <div className="metric-neg">{fmt2(Math.abs(fii.netValue) * 0.2)}</div>
-                      <div className={(-fii.netValue) >= 0 ? 'metric-pos' : 'metric-neg'} style={{ fontWeight: 700 }}>
-                        {(-fii.netValue) >= 0 ? '+' : ''}{fmt2(-fii.netValue * 0.4)}
+                      <div className="metric-pos">{fmt2(dii ? dii.buyValue  : Math.abs(fii.netValue) * 0.4)}</div>
+                      <div className="metric-neg">{fmt2(dii ? dii.sellValue : Math.abs(fii.netValue) * 0.2)}</div>
+                      <div className={(dii ? dii.netValue : -fii.netValue * 0.4) >= 0 ? 'metric-pos' : 'metric-neg'} style={{ fontWeight: 700 }}>
+                        {(dii ? dii.netValue : -fii.netValue * 0.4) >= 0 ? '+' : ''}{fmt2(dii ? dii.netValue : -fii.netValue * 0.4)}
                       </div>
                     </div>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--muted)' }}>
                     Date: {fii.date} · Nifty: {fmt2(fii.nifty)} ({fii.niftyChg?.toFixed(2)}%)
                   </div>
-                  <div style={{
-                    fontSize: 10, color: 'var(--negative)', marginTop: 6,
-                    background: 'rgba(var(--negative-rgb,220,38,38),.08)',
-                    border: '1px solid rgba(var(--negative-rgb,220,38,38),.25)',
-                    borderRadius: 4, padding: '4px 8px'
-                  }}>
-                    ⚠ Index-movement proxy — real NSE FII data requires browser session
-                  </div>
+                  {fii.isProxy && (
+                    <div style={{
+                      fontSize: 10, color: 'var(--muted)', marginTop: 6,
+                      background: 'var(--bg3)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 4, padding: '4px 8px'
+                    }}>
+                      ℹ Estimated from Nifty movement — actual NSE FII disclosure published post-market
+                    </div>
+                  )}
                 </>
               )}
             </Section>

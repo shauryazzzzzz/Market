@@ -9,6 +9,30 @@
 const { spawnSync } = require('child_process');
 const path  = require('path');
 
+// ── Input sanitization ────────────────────────────────────────────────────────
+// NSE/BSE symbols are 1–20 uppercase alphanumeric chars, hyphens, and dots.
+// Exchange names are 'NSE' or 'BSE'. Reject anything else before it reaches Python.
+const SYMBOL_RE   = /^[A-Z0-9\-\.]{1,20}$/;
+const EXCHANGE_RE = /^(NSE|BSE)$/;
+
+/**
+ * Validate and normalise a single trading symbol.
+ * Throws a TypeError if the value is invalid.
+ */
+function validateSymbol(sym) {
+  const s = String(sym || '').trim().toUpperCase();
+  if (!SYMBOL_RE.test(s)) throw new TypeError(`Invalid symbol: "${sym}"`);
+  return s;
+}
+
+/**
+ * Validate a comma-joined list of symbols (e.g. "RELIANCE,TCS").
+ * Returns a cleaned array. Throws TypeError on any bad entry.
+ */
+function validateSymbols(raw) {
+  return String(raw || '').split(',').filter(Boolean).map(validateSymbol);
+}
+
 const PYTHON = process.env.PYTHON_PATH ||
                'C:\\Users\\SaurabhSolanki\\AppData\\Local\\Programs\\Python\\Python312\\python.exe';
 
@@ -52,11 +76,13 @@ function runBridge(command, args = []) {
 
 /** Live quote for a single symbol (e.g. 'HDFCBANK') */
 function getQuote(symbol) {
+  try { symbol = validateSymbol(symbol); } catch (e) { return { success: false, error: e.message, code: 'INVALID_INPUT' }; }
   return runBridge('quote', [symbol]);
 }
 
 /** Bulk quotes — array of symbols */
 function getQuotes(symbols) {
+  try { symbols = validateSymbols(symbols.join(',')); } catch (e) { return { success: false, error: e.message, code: 'INVALID_INPUT' }; }
   return runBridge('quotes', [symbols.join(',')]);
 }
 
@@ -72,17 +98,21 @@ function getPositions() {
 
 /** Last traded prices only */
 function getLTP(symbols) {
+  try { symbols = validateSymbols(symbols.join(',')); } catch (e) { return { success: false, error: e.message, code: 'INVALID_INPUT' }; }
   return runBridge('ltp', [symbols.join(',')]);
 }
 
 /** OHLC snapshot */
 function getOHLC(symbols) {
+  try { symbols = validateSymbols(symbols.join(',')); } catch (e) { return { success: false, error: e.message, code: 'INVALID_INPUT' }; }
   return runBridge('ohlc', [symbols.join(',')]);
 }
 
 /** Full instrument list for exchange ('NSE' / 'BSE') */
 function getInstruments(exchange = 'NSE') {
-  return runBridge('instruments', [exchange]);
+  const ex = String(exchange || 'NSE').trim().toUpperCase();
+  if (!EXCHANGE_RE.test(ex)) return { success: false, error: `Invalid exchange: "${exchange}"`, code: 'INVALID_INPUT' };
+  return runBridge('instruments', [ex]);
 }
 
 module.exports = { getQuote, getQuotes, getHoldings, getPositions, getLTP, getOHLC, getInstruments, runBridge };

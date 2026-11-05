@@ -1340,10 +1340,10 @@ if (fs.existsSync(frontendBuild)) {
   });
 }
 
-// ── Start ────────────────────────────────────────────────────────────────────
-buildIndex().then(() => {
-  app.listen(PORT, () => {
-    console.log(`[FUNDA] Backend running on http://localhost:${PORT}`);
-    console.log(`[FUNDA] DATA folder: ${DATA_DIR}`);
-  });
+// ── Start — listen immediately, index in background ──────────────────────────
+app.listen(PORT, () => {
+  console.log(`[FUNDA] Backend running on http://localhost:${PORT}`);
+  console.log(`[FUNDA] DATA folder: ${DATA_DIR}`);
+  // Start indexing after server is already accepting connections
+  buildIndex().catch(e => console.error('[FUNDA] Index error:', e.message));
 });

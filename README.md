@@ -276,8 +276,20 @@ See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
 ---
 
+## 🔒 Security
+
+See [`risk.md`](risk.md) for the full security audit report (28-Oct-2026).
+
+**Key findings:**
+- Input validation recommended for `/api/kite/quote/:symbol` (user-supplied value reaches `spawnSync` args — no shell injection risk due to array args, but sanitization is good practice)
+- CORS open (`*`) — acceptable for local use
+- All API keys in `.env` (git-ignored)
+- `.gitignore` covers `.env*` pattern
+
+---
+
 ## 👤 Author
 
-**Saurabh Solanki**  
-IBM · AI Side Project  
+**Saurabh Solanki**
+IBM · AI Side Project
 GitHub: [@SaurabhSolanki26](https://github.com/SaurabhSolanki26)
