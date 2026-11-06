@@ -55,8 +55,9 @@ data/dummy-ai.json
 # Sub-package node_modules
 financial-monitor/node_modules/
 financial-monitor/.bob/
-NewsFeed-Google-AI-/node_modules/
-NewsFeed-Google-AI-/.git/
+
+# Duplicate project copy (real app lives in its own top-level repo)
+NewsFeed-Google-AI-/
 
 data/NSE_Combined_25Aug2026.xlsx
 data/Combined_Raw_Data.xlsx
